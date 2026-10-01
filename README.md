@@ -1,6 +1,6 @@
 # ⚡ MOMENTUM — Kişisel Odak & Gelişim Takip Sistemi
 
-> **MacBook & Android (Samsung)** için tasarlanmış; sıfır bağımlılıklı, minimalist, derin odaklanma ve alışkanlık takip sistemi.
+> **MacBook & Telefon için tasarlanmış; sıfır bağımlılıklı, minimalist, derin odaklanma ve alışkanlık takip sistemi.
 
 ---
 
@@ -27,7 +27,7 @@
 ### 💻 MacBook'ta Çalıştırma:
 Klasördeki **`Baslat.command`** dosyasına (veya doğrudan `index.html`'e) çift tıklayın.
 
-### 📱 Samsung (Android) Telefonunuzda Açma & Senkronizasyon:
+### 📱 Telefonunuzda Açma & Senkronizasyon:
 1. Klasördeki **`Telefonda_Ac.command`** dosyasına çift tıklayın.
 2. Açılan terminal penceresinde belirtilen bağlantıyı (örneğin: `http://192.168.1.11:8080/?pin=2026`) telefonunuzun Chrome tarayıcısına yazın.
 3. Telefonda sağ üstteki menüden **"Ana Ekrana Ekle"** seçeneğini seçerek tam ekran bağımsız bir mobil uygulama olarak kullanın.
