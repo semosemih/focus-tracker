@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0c0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Odak & Gelişim Sistemi | Spor, Ders, Yaratıcılık</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="app" class="app-container">
+
+    <!-- Üst Başlık & Gezinme Çubuğu -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="app-logo">
+          <div class="logo-icon-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+          </div>
+          <span class="logo-title">My System</span>
+          <span class="sync-badge" id="sync-badge" title="Canlı Senkronizasyon Durumu"><span class="sync-dot"></span> <span class="sync-text" id="sync-text">Yerel</span></span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- 3 Ana Kategori Seçimi -->
+        <nav class="category-tabs" role="tablist">
+          <button class="cat-tab active" data-category="spor" id="tab-spor">
+            <span class="tab-emoji">🏃‍♂️</span>
+            <span class="tab-label">Spor</span>
+            <span class="tab-counter" id="count-spor">0</span>
+          </button>
+          <button class="cat-tab" data-category="ders" id="tab-ders">
+            <span class="tab-emoji">📚</span>
+            <span class="tab-label">Ders</span>
+            <span class="tab-counter" id="count-ders">0</span>
+          </button>
+          <button class="cat-tab" data-category="yaraticilik" id="tab-yaraticilik">
+            <span class="tab-emoji">🎨</span>
+            <span class="tab-label">Yaratıcılık</span>
+            <span class="tab-counter" id="count-yaraticilik">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <!-- Görünüm Değiştirici (Kartlar / İlerleme / Takvim) -->
+        <div class="nav-actions">
+          <button class="icon-btn active" id="btn-view-cards" title="Kategoriler & Kartlar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="2" />
+              <rect x="14" y="3" width="7" height="7" rx="2" />
+              <rect x="14" y="14" width="7" height="7" rx="2" />
+              <rect x="3" y="14" width="7" height="7" rx="2" />
+            </svg>
+            <span>Odak</span>
+          </button>
+          <button class="icon-btn" id="btn-view-calendar" title="Takvim & Geçmiş">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>Takvim</span>
+          </button>
+          <button class="icon-btn" id="btn-view-stats" title="İlerleme & İstatistik">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <span>İlerleme</span>
+          </button>
+          <button class="icon-btn fullscreen-toggle" id="btn-fullscreen-toggle" title="Tam Ekran Modu (Mac)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              id="fullscreen-icon">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Günlük Hızlı Durum / Motivasyon Şeridi -->
+    <section class="daily-quick-bar">
+      <div class="today-badge">
+        <span class="today-date-text" id="today-date-text">Bugün</span>
+      </div>
+      <div class="quick-stats-row">
+        <div class="q-stat">
+          <span class="q-val" id="stat-today-sessions">0</span>
+          <span class="q-lbl">Seans</span>
+        </div>
+        <div class="q-divider"></div>
+        <div class="q-stat">
+          <span class="q-val" id="stat-today-minutes">0 dk</span>
+          <span class="q-lbl">Odak</span>
+        </div>
+        <div class="q-divider"></div>
+        <div class="q-stat">
+          <span class="q-val" id="stat-streak-days">0</span>
+          <span class="q-lbl">Gün Seri 🔥</span>
+        </div>
+        <div class="q-divider"></div>
+        <div class="streak-categories-pill" id="today-streak-pill" title="Serinin devam etmesi için her 3 kategoriden (Spor, Ders, Yaratıcılık) en az 1 seans tamamlamalısın">
+          <span class="cat-req spor" id="req-spor">🏃 0/1</span>
+          <span class="cat-req ders" id="req-ders">📚 0/1</span>
+          <span class="cat-req yaraticilik" id="req-yaraticilik">🎨 0/1</span>
+        </div>
+      </div>
+      <div class="dynamic-quote-pill" id="header-quote">
+        "Disiplin, hedefler ile başarı arasındaki köprüdür."
+      </div>
+    </section>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="main-content">
+
+      <!-- GÖRÜNÜM 1: KARE ALT BAŞLIKLAR (ODAK KARTLARI) -->
+      <section id="view-cards" class="view-section active">
+        <div class="section-banner">
+          <div class="banner-info">
+            <h2 id="active-category-title">🏃‍♂️ Spor</h2>
+            <p id="active-category-desc">Bugün hangi aktiviteye odaklanacaksın? Başlamak için bir kareye tıkla.</p>
+          </div>
+          <button class="primary-btn" id="btn-open-create-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Yeni Alt Başlık Ekle</span>
+          </button>
+        </div>
+
+        <!-- Kare Kartlar Izgarası -->
+        <div class="square-grid" id="items-grid">
+          <!-- Dinamik olarak JS ile doldurulacak -->
+        </div>
+      </section>
+
+      <!-- GÖRÜNÜM 2: TAKVİM & GEÇMİŞ -->
+      <section id="view-calendar" class="view-section">
+        <div class="calendar-layout">
+          <div class="calendar-card">
+            <div class="calendar-header">
+              <div class="cal-nav">
+                <button class="cal-btn" id="btn-prev-month" title="Önceki Ay">‹</button>
+                <h3 id="calendar-month-year">Ekim 2026</h3>
+                <button class="cal-btn" id="btn-next-month" title="Sonraki Ay">›</button>
+              </div>
+              <button class="text-btn" id="btn-jump-today">Bugüne Git</button>
+            </div>
+
+            <!-- Takvim Günleri -->
+            <div class="calendar-weekdays">
+              <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
+            </div>
+            <div class="calendar-days-grid" id="calendar-days-grid">
+              <!-- JS ile doldurulacak -->
+            </div>
+
+            <div class="calendar-legend">
+              <span class="legend-item"><span class="legend-dot spor"></span> Spor</span>
+              <span class="legend-item"><span class="legend-dot ders"></span> Ders</span>
+              <span class="legend-item"><span class="legend-dot yaraticilik"></span> Yaratıcılık</span>
+            </div>
+          </div>
+
+          <!-- Seçilen Günün Detayları -->
+          <div class="day-details-card">
+            <div class="day-details-head">
+              <h3 id="selected-day-title">Bugünün Aktiviteleri</h3>
+              <span class="badge" id="selected-day-badge">0 Seans</span>
+            </div>
+            <div class="day-summary-numbers">
+              <div class="sum-box">
+                <span class="sum-num" id="day-total-mins">0 dk</span>
+                <span class="sum-lbl">Toplam Süre</span>
+              </div>
+              <div class="sum-box">
+                <span class="sum-num" id="day-category-count">0</span>
+                <span class="sum-lbl">Farklı Kategori</span>
+              </div>
+            </div>
+            <div class="sessions-history-list" id="day-sessions-list">
+              <!-- JS ile seanslar listelenecek -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GÖRÜNÜM 3: İLERLEME & İSTATİSTİKLER -->
+      <section id="view-stats" class="view-section">
+        <div class="stats-overview-grid">
+          <div class="stat-card highlight">
+            <div class="stat-card-head">
+              <span class="stat-emoji">👑</span>
+              <span class="stat-tag">Genel Performans</span>
+            </div>
+            <h3 class="stat-big-val" id="stat-total-focused-time">0 Saat</h3>
+            <p class="stat-desc">Toplam odaklanma süresi</p>
+            <div class="level-progress-wrap">
+              <div class="level-info">
+                <span id="level-title">Seviye 1: Çaylak Odaklanıcı</span>
+                <span id="level-percent">%0</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="level-progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-head">
+              <span class="stat-emoji">🔥</span>
+              <span class="stat-tag">Disiplin Zinciri</span>
+            </div>
+            <h3 class="stat-big-val" id="stat-streak-big">0 Gün</h3>
+            <p class="stat-desc">Aralıksız devam eden seri</p>
+            <div class="streak-encouragement" id="streak-encouragement">
+              Her gün bir seans bile olsa zinciri kırma!
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-head">
+              <span class="stat-emoji">🎯</span>
+              <span class="stat-tag">Toplam Tamamlanan</span>
+            </div>
+            <h3 class="stat-big-val" id="stat-total-sessions-count">0 Seans</h3>
+            <p class="stat-desc">Başarıyla bitirilen bloklar</p>
+            <div class="session-ratio-pills" id="session-ratio-pills">
+              <span class="ratio-pill spor">🏃 0</span>
+              <span class="ratio-pill ders">📚 0</span>
+              <span class="ratio-pill yaraticilik">🎨 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kategori Bazlı Dağılım Çubukları -->
+        <div class="category-breakdown-card">
+          <h3>Kategori Bazlı Odak Dağılımı</h3>
+          <div class="category-bars">
+            <div class="cat-bar-item">
+              <div class="bar-header">
+                <span>🏃‍♂️ Spor</span>
+                <span id="prog-spor-val">0 dk (%0)</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill bar-spor" id="prog-spor-bar" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="cat-bar-item">
+              <div class="bar-header">
+                <span>📚 Ders</span>
+                <span id="prog-ders-val">0 dk (%0)</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill bar-ders" id="prog-ders-bar" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="cat-bar-item">
+              <div class="bar-header">
+                <span>🎨 Yaratıcılık</span>
+                <span id="prog-yaraticilik-val">0 dk (%0)</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill bar-yaraticilik" id="prog-yaraticilik-bar" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= MODALLAR ================= -->
+
+    <!-- MODAL 1: SÜRE SEÇİM MODALI (Kısa 15dk, Orta 30dk, Uzun 45dk) -->
+    <div class="modal-backdrop" id="duration-modal">
+      <div class="modal-window">
+        <button class="modal-close-btn" id="btn-close-duration-modal">✕</button>
+        <div class="modal-header">
+          <div class="modal-item-badge" id="modal-item-color-pill">
+            <span id="modal-item-icon">⚡</span>
+            <span id="modal-item-title">Aktivite Adı</span>
+          </div>
+          <h2 class="modal-title">Seans Süresini Seç</h2>
+          <p class="modal-desc">Kendine uygun bir tempo belirle ve odağını topla.</p>
+        </div>
+
+        <div class="duration-options-grid">
+          <!-- Kısa (15 dk) -->
+          <button class="duration-card" data-minutes="15" id="btn-duration-15">
+            <div class="dur-badge">Hafif Seans</div>
+            <div class="dur-mins">15</div>
+            <div class="dur-unit">Dakika</div>
+            <div class="dur-name">Kısa</div>
+            <p class="dur-hint">Hızlı başlangıç veya hafif tempo</p>
+          </button>
+
+          <!-- Orta (30 dk) -->
+          <button class="duration-card featured" data-minutes="30" id="btn-duration-30">
+            <div class="dur-badge popular">Önerilen</div>
+            <div class="dur-mins">30</div>
+            <div class="dur-unit">Dakika</div>
+            <div class="dur-name">Orta</div>
+            <p class="dur-hint">İdeal derin çalışma ve odak</p>
+          </button>
+
+          <!-- Uzun (45 dk) -->
+          <button class="duration-card" data-minutes="45" id="btn-duration-45">
+            <div class="dur-badge">Yoğun Seans</div>
+            <div class="dur-mins">45</div>
+            <div class="dur-unit">Dakika</div>
+            <div class="dur-name">Uzun</div>
+            <p class="dur-hint">Tam performans & derinleşme</p>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: YENİ ALT BAŞLIK OLUŞTURMA & DÜZENLEME -->
+    <div class="modal-backdrop" id="item-form-modal">
+      <div class="modal-window compact">
+        <button class="modal-close-btn" id="btn-close-form-modal">✕</button>
+        <div class="modal-header">
+          <h2 class="modal-title" id="form-modal-title">Yeni Alt Başlık Ekle</h2>
+          <p class="modal-desc" id="form-modal-subtitle">Spor kategorisi altına yeni bir kare parça ekle</p>
+        </div>
+
+        <form id="item-form" class="clean-form">
+          <input type="hidden" id="form-item-id">
+          <input type="hidden" id="form-category-id">
+
+          <div class="form-group">
+            <label for="form-item-name">Başlık / Aktivite Adı</label>
+            <input type="text" id="form-item-name" placeholder="Örn: Bacak Antrenmanı, Çizim, Matematik" required
+              maxlength="30" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label>Emoji Simgesi</label>
+            <div class="emoji-picker-row" id="emoji-picker">
+              <!-- Emojiler JS ile doldurulacak -->
+            </div>
+            <input type="hidden" id="form-item-emoji" value="⚡">
+          </div>
+
+          <div class="form-group">
+            <label>Kart Rengi (Göz Yormayan Pastel & Modern Tonlar)</label>
+            <div class="color-picker-palette" id="color-picker">
+              <!-- Renkler JS ile doldurulacak -->
+            </div>
+            <input type="hidden" id="form-item-color" value="#4F46E5">
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="text-btn danger-btn hidden" id="btn-delete-item">Sil</button>
+            <div class="spacer"></div>
+            <button type="button" class="ghost-btn" id="btn-cancel-form">Vazgeç</button>
+            <button type="submit" class="primary-btn" id="btn-save-item">Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= FULLSCREEN FOCUS & TIMER OVERLAY ================= -->
+    <div class="focus-timer-overlay" id="focus-overlay">
+      <div class="focus-ambient-glow" id="focus-glow"></div>
+
+      <!-- Üst Kontroller -->
+      <div class="focus-top-bar">
+        <div class="focus-info-pill">
+          <span class="focus-cat-tag" id="timer-cat-tag">Spor</span>
+          <span class="focus-sep">•</span>
+          <span class="focus-item-name" id="timer-item-title">Aktivite Adı</span>
+          <span class="focus-mode-badge" id="timer-mode-badge">Orta (30 dk)</span>
+        </div>
+
+        <div class="focus-top-actions">
+          <button class="sound-toggle-btn" id="btn-ambient-sound" title="Odaklanma Sesi (Beyaz Gürültü / Zen Dalga)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              id="sound-icon">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+            <span id="sound-label">Ses Kapalı</span>
+          </button>
+          <button class="icon-btn-circle" id="btn-timer-fullscreen" title="Tam Ekrana Al">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          </button>
+          <button class="icon-btn-circle" id="btn-minimize-timer" title="Geri Dön">✕</button>
+        </div>
+      </div>
+
+      <!-- Büyük Minimalist Sayaç Çemberi -->
+      <div class="timer-center-stage">
+        <div class="timer-ring-container">
+          <svg class="timer-svg" viewBox="0 0 340 340">
+            <circle class="timer-bg-circle" cx="170" cy="170" r="145"></circle>
+            <circle class="timer-progress-circle" id="timer-circle-progress" cx="170" cy="170" r="145"></circle>
+          </svg>
+          <div class="timer-display-inside">
+            <div class="timer-digits" id="timer-digits">30:00</div>
+            <div class="timer-status-text" id="timer-status-text">Odaklanma Zamanı</div>
+            <div class="timer-progress-percent" id="timer-progress-percent">%0 Tamamlandı</div>
+          </div>
+        </div>
+
+        <p class="timer-quote" id="timer-quote">"Şimdi sadece bu ana odaklan."</p>
+
+        <!-- Zamanlayıcı Kontrol Düğmeleri -->
+        <div class="timer-controls">
+          <button class="ctrl-btn secondary" id="btn-timer-reset" title="Sıfırla">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            <span>Baştan</span>
+          </button>
+
+          <button class="ctrl-btn play-pause-btn" id="btn-timer-play-pause">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" id="play-pause-icon">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span id="play-pause-text">Başlat</span>
+          </button>
+
+          <button class="ctrl-btn secondary" id="btn-timer-finish" title="Seansı Tamamla">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>Bitir</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= KUTLAMA & MOTİVASYON MODALI ================= -->
+    <div class="celebration-overlay" id="celebration-overlay">
+      <canvas id="confetti-canvas"></canvas>
+      <div class="celebration-card">
+        <div class="celeb-badge">✨ HARİKA İŞ ÇIKARDIN! ✨</div>
+        <div class="celeb-icon-wrap" id="celeb-icon">🏆</div>
+        <h2 class="celeb-title" id="celeb-title">Seans Başarıyla Tamamlandı!</h2>
+
+        <div class="celeb-quote-box">
+          <p class="celeb-quote" id="celeb-quote">"Bugün gösterdiğin çaba, yarınki gücün olacak."</p>
+        </div>
+
+        <div class="celeb-stats-row">
+          <div class="c-stat">
+            <span class="c-val" id="celeb-duration">30 dk</span>
+            <span class="c-lbl">Kazanılan Odak</span>
+          </div>
+          <div class="c-stat">
+            <span class="c-val" id="celeb-item">Koşu</span>
+            <span class="c-lbl">Aktivite</span>
+          </div>
+          <div class="c-stat">
+            <span class="c-val" id="celeb-streak">3 Gün 🔥</span>
+            <span class="c-lbl">Seri</span>
+          </div>
+        </div>
+
+        <button class="primary-btn wide" id="btn-close-celebration">
+          <span>Harika, Devam Et</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

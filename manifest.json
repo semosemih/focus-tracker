@@ -1,0 +1,18 @@
+{
+  "name": "MOMENTUM - Odak & Gelişim",
+  "short_name": "Momentum",
+  "description": "Spor, Ders ve Yaratıcılık için Minimalist Odak Takip Sistemi",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0f17",
+  "theme_color": "#0c0f17",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
