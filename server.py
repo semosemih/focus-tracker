@@ -41,6 +41,7 @@ class MomentumSyncServer:
         return {
             "items": [],
             "sessions": [],
+            "todos": [],
             "timer": {
                 "active": False,
                 "item": None,
@@ -190,6 +191,8 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
                     sync_service.data["items"] = payload["items"]
                 if "sessions" in payload:
                     sync_service.data["sessions"] = payload["sessions"]
+                if "todos" in payload:
+                    sync_service.data["todos"] = payload["todos"]
                 if "timer" in payload:
                     sync_service.data["timer"] = payload["timer"]
 

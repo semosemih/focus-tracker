@@ -72,6 +72,14 @@
             </svg>
             <span>Odak</span>
           </button>
+          <button class="icon-btn" id="btn-view-todos" title="Görevlerim & Yapılacaklar Listesi">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span>Görevler</span>
+            <span class="nav-badge hidden" id="todos-nav-badge">0</span>
+          </button>
           <button class="icon-btn" id="btn-view-calendar" title="Takvim & Geçmiş">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -81,13 +89,13 @@
             </svg>
             <span>Takvim</span>
           </button>
-          <button class="icon-btn" id="btn-view-stats" title="İlerleme & İstatistik">
+          <button class="icon-btn" id="btn-view-stats" title="Profilim, Seviyeler & İstatistik">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="20" x2="18" y2="10" />
               <line x1="12" y1="20" x2="12" y2="4" />
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
-            <span>İlerleme</span>
+            <span>Profil</span>
           </button>
           <button class="icon-btn fullscreen-toggle" id="btn-fullscreen-toggle" title="Tam Ekran Modu (Mac)">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -292,6 +300,113 @@
                 <div class="progress-bar-fill bar-yaraticilik" id="prog-yaraticilik-bar" style="width: 0%"></div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- KATEGORİ & ALT BAŞLIK BAZLI SEVİYE SİSTEMİ (PROFİL) -->
+        <div class="subcat-levels-card">
+          <div class="subcat-levels-head">
+            <div class="subcat-head-info">
+              <div class="subcat-head-tag">🎖️ Profil & Uzmanlık Seviyeleri</div>
+              <h3>Alt Başlık Bazlı Seviye & Gelişim</h3>
+              <p>Hangi alt başlıkta kaçıncı seviyedesin, ne kadar süre odaklandın ve hangi alanda daha öndesin tek bakışta gör.</p>
+            </div>
+            <!-- Filtre Butonları -->
+            <div class="subcat-level-filters" id="subcat-level-filters">
+              <button class="subcat-filter-btn active" data-subcat-filter="all">Tümü</button>
+              <button class="subcat-filter-btn" data-subcat-filter="spor">🏃 Spor</button>
+              <button class="subcat-filter-btn" data-subcat-filter="ders">📚 Ders</button>
+              <button class="subcat-filter-btn" data-subcat-filter="yaraticilik">🎨 Yaratıcılık</button>
+            </div>
+          </div>
+
+          <!-- Alt Başlık Seviye Kartları Grid -->
+          <div class="subcat-levels-grid" id="subcat-levels-grid">
+            <!-- JS ile dinamik olarak doldurulacak -->
+          </div>
+        </div>
+      </section>
+
+      <!-- GÖRÜNÜM 4: GÖREVLERİM (TO-DO LİSTESİ) -->
+      <section id="view-todos" class="view-section">
+        <div class="todos-main-card">
+          <!-- Üst Başlık & İstatistik Özeti -->
+          <div class="todos-header">
+            <div class="todos-title-info">
+              <div class="todos-badge-pill">✨ Serbest Hedefler & Yapılacaklar</div>
+              <h2>🎯 Görevlerim</h2>
+              <p>Kendine istediğin cümlelerle serbest görevler tanımla, alt başlıklarınla ilişkilendir ve odaklanarak tamamla.</p>
+            </div>
+            <div class="todos-metrics-row">
+              <div class="t-metric-card">
+                <span class="t-metric-val" id="todo-metric-total">0</span>
+                <span class="t-metric-lbl">Toplam</span>
+              </div>
+              <div class="t-metric-card active-m">
+                <span class="t-metric-val" id="todo-metric-active">0</span>
+                <span class="t-metric-lbl">Bekleyen</span>
+              </div>
+              <div class="t-metric-card done-m">
+                <span class="t-metric-val" id="todo-metric-done">0</span>
+                <span class="t-metric-lbl">Tamamlanan</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Görev Ekleme Kutusu -->
+          <div class="todo-create-box">
+            <form id="todo-create-form" class="todo-form">
+              <div class="todo-input-row">
+                <div class="todo-input-field">
+                  <span class="todo-input-prefix">✍️</span>
+                  <input type="text" id="todo-input-text" class="todo-text-input" 
+                    placeholder="Yapmak istediğin görevi kendi cümlenle yaz... (Örn: Almanca 50 yeni kelime tekrarı yap)" 
+                    autocomplete="off" required maxlength="120">
+                </div>
+              </div>
+
+              <div class="todo-input-actions-row">
+                <div class="todo-subcat-select-wrap">
+                  <label for="todo-item-select" class="todo-sel-label">İlişkili Alt Başlık:</label>
+                  <select id="todo-item-select" class="todo-subcat-select">
+                    <option value="">📌 Genel (Bağımsız Görev)</option>
+                    <!-- JS ile alt başlıklar yüklenecek -->
+                  </select>
+                </div>
+
+                <button type="submit" class="primary-btn" id="btn-add-todo">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>Görevi Ekle</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Filtreler & Toolbar -->
+          <div class="todos-toolbar">
+            <div class="todos-filters-tabs" id="todos-filter-tabs">
+              <button class="todo-tab-btn active" data-todo-filter="all">Tümü (<span id="todo-cnt-all">0</span>)</button>
+              <button class="todo-tab-btn" data-todo-filter="active">Bekleyenler (<span id="todo-cnt-active">0</span>)</button>
+              <button class="todo-tab-btn" data-todo-filter="completed">Tamamlananlar (<span id="todo-cnt-completed">0</span>)</button>
+            </div>
+
+            <div class="todos-tools-right">
+              <button type="button" class="text-btn danger-btn-soft" id="btn-clear-completed-todos" title="Tamamlanan görevleri temizle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Tamamlananları Temizle</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Görev Listesi -->
+          <div class="todos-list-container" id="todos-list-container">
+            <!-- JS ile dinamik to-do kartları gelecek -->
           </div>
         </div>
       </section>

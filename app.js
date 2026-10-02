@@ -98,6 +98,13 @@ class MomentumApp {
     this.calendarCurrentDate = new Date();
     this.selectedCalendarDate = new Date();
 
+    // Görevlerim (To-Do) durumu
+    this.todos = this.loadTodos();
+    this.todoFilter = 'all'; // 'all', 'active', 'completed'
+
+    // Profil Alt Başlık Seviyeleri filtre durumu
+    this.subcatLevelFilter = 'all'; // 'all', 'spor', 'ders', 'yaraticilik'
+
     this.initDOM();
     this.bindEvents();
     this.render();
@@ -150,6 +157,23 @@ class MomentumApp {
 
   saveSessions(sync = true) {
     localStorage.setItem('momentum_sessions', JSON.stringify(this.sessions));
+    if (sync) this.pushSyncToServer();
+  }
+
+  loadTodos() {
+    const saved = localStorage.getItem('momentum_todos');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) { console.error(e); }
+    }
+    return [];
+  }
+
+  saveTodos(sync = true) {
+    localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
+    this.updateTodosBadge();
     if (sync) this.pushSyncToServer();
   }
 
@@ -215,11 +239,19 @@ class MomentumApp {
             this.items = data.items;
             localStorage.setItem('momentum_items', JSON.stringify(this.items));
           }
+          if (Array.isArray(data.todos)) {
+            this.todos = data.todos;
+            localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
+          }
           this.render();
         } else if (this.sessions && this.sessions.length > 0) {
           // Sunucu henüz boş (yeni açıldı) ama bu cihazda seanslar var (örn. Mac'teki 5 seans)
           // Mevcut seansları sunucuya yükle ki telefonda hemen görünsün!
           await this.pushSyncToServer();
+        } else if (Array.isArray(data.todos)) {
+          this.todos = data.todos;
+          localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
+          this.render();
         }
 
         // Eğer uzakta çalışan bir sayaç varsa bu ekranda da aç
@@ -275,6 +307,14 @@ class MomentumApp {
     if (data.items && Object.keys(data.items).length > 0) {
       this.items = data.items;
       localStorage.setItem('momentum_items', JSON.stringify(this.items));
+      shouldRender = true;
+    }
+
+    // Görevler (To-Do) güncellendiyse
+    if (Array.isArray(data.todos)) {
+      this.todos = data.todos;
+      localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
+      this.updateTodosBadge();
       shouldRender = true;
     }
 
@@ -335,6 +375,7 @@ class MomentumApp {
       const payload = {
         items: this.items,
         sessions: this.sessions,
+        todos: this.todos,
         timer: this.getTimerSyncPayload()
       };
       const url = `${this.syncState.baseUrl}/api/sync?pin=${encodeURIComponent(this.syncState.pin)}`;
@@ -400,12 +441,33 @@ class MomentumApp {
     this.catTabs = document.querySelectorAll('.cat-tab');
 
     this.btnViewCards = document.getElementById('btn-view-cards');
+    this.btnViewTodos = document.getElementById('btn-view-todos');
     this.btnViewCalendar = document.getElementById('btn-view-calendar');
     this.btnViewStats = document.getElementById('btn-view-stats');
+    this.todosNavBadge = document.getElementById('todos-nav-badge');
 
     this.viewCards = document.getElementById('view-cards');
+    this.viewTodos = document.getElementById('view-todos');
     this.viewCalendar = document.getElementById('view-calendar');
     this.viewStats = document.getElementById('view-stats');
+
+    // Görevler (To-Do) DOM
+    this.todoCreateForm = document.getElementById('todo-create-form');
+    this.todoInputText = document.getElementById('todo-input-text');
+    this.todoItemSelect = document.getElementById('todo-item-select');
+    this.todosFilterTabs = document.getElementById('todos-filter-tabs');
+    this.todosListContainer = document.getElementById('todos-list-container');
+    this.btnClearCompletedTodos = document.getElementById('btn-clear-completed-todos');
+    this.todoMetricTotal = document.getElementById('todo-metric-total');
+    this.todoMetricActive = document.getElementById('todo-metric-active');
+    this.todoMetricDone = document.getElementById('todo-metric-done');
+    this.todoCntAll = document.getElementById('todo-cnt-all');
+    this.todoCntActive = document.getElementById('todo-cnt-active');
+    this.todoCntCompleted = document.getElementById('todo-cnt-completed');
+
+    // Alt Başlık Seviyeleri (Profil) DOM
+    this.subcatLevelsGrid = document.getElementById('subcat-levels-grid');
+    this.subcatLevelFilters = document.getElementById('subcat-level-filters');
 
     // Başlık & Sayaçlar
     this.activeCatTitle = document.getElementById('active-category-title');
@@ -517,8 +579,41 @@ class MomentumApp {
 
     // Görünüm Değiştiriciler
     this.btnViewCards.addEventListener('click', () => this.switchView('cards'));
+    if (this.btnViewTodos) this.btnViewTodos.addEventListener('click', () => this.switchView('todos'));
     this.btnViewCalendar.addEventListener('click', () => this.switchView('calendar'));
     this.btnViewStats.addEventListener('click', () => this.switchView('stats'));
+
+    // Görevler (To-Do) Olayları
+    if (this.todoCreateForm) {
+      this.todoCreateForm.addEventListener('submit', (e) => this.handleCreateTodo(e));
+    }
+    if (this.todosFilterTabs) {
+      this.todosFilterTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('.todo-tab-btn');
+        if (btn) {
+          this.todosFilterTabs.querySelectorAll('.todo-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.todoFilter = btn.dataset.todoFilter || 'all';
+          this.renderTodos();
+        }
+      });
+    }
+    if (this.btnClearCompletedTodos) {
+      this.btnClearCompletedTodos.addEventListener('click', () => this.clearCompletedTodos());
+    }
+
+    // Alt Başlık Seviye Filtreleri (Profil)
+    if (this.subcatLevelFilters) {
+      this.subcatLevelFilters.addEventListener('click', (e) => {
+        const btn = e.target.closest('.subcat-filter-btn');
+        if (btn) {
+          this.subcatLevelFilters.querySelectorAll('.subcat-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.subcatLevelFilter = btn.dataset.subcatFilter || 'all';
+          this.renderSubcategoryLevels();
+        }
+      });
+    }
 
     // Mac Tam Ekran Düğmesi
     this.btnFullscreenToggle.addEventListener('click', () => this.toggleFullscreen());
@@ -611,21 +706,29 @@ class MomentumApp {
 
   switchView(viewName) {
     this.activeView = viewName;
-    [this.btnViewCards, this.btnViewCalendar, this.btnViewStats].forEach(b => b.classList.remove('active'));
-    [this.viewCards, this.viewCalendar, this.viewStats].forEach(v => v.classList.remove('active'));
+    const navBtns = [this.btnViewCards, this.btnViewTodos, this.btnViewCalendar, this.btnViewStats].filter(Boolean);
+    const views = [this.viewCards, this.viewTodos, this.viewCalendar, this.viewStats].filter(Boolean);
+
+    navBtns.forEach(b => b.classList.remove('active'));
+    views.forEach(v => v.classList.remove('active'));
 
     if (viewName === 'cards') {
-      this.btnViewCards.classList.add('active');
-      this.viewCards.classList.add('active');
+      if (this.btnViewCards) this.btnViewCards.classList.add('active');
+      if (this.viewCards) this.viewCards.classList.add('active');
       this.renderSquareCards();
+    } else if (viewName === 'todos') {
+      if (this.btnViewTodos) this.btnViewTodos.classList.add('active');
+      if (this.viewTodos) this.viewTodos.classList.add('active');
+      this.populateTodoItemSelect();
+      this.renderTodos();
     } else if (viewName === 'calendar') {
-      this.btnViewCalendar.classList.add('active');
-      this.viewCalendar.classList.add('active');
+      if (this.btnViewCalendar) this.btnViewCalendar.classList.add('active');
+      if (this.viewCalendar) this.viewCalendar.classList.add('active');
       this.renderCalendar();
       this.renderDaySessions(this.selectedCalendarDate);
     } else if (viewName === 'stats') {
-      this.btnViewStats.classList.add('active');
-      this.viewStats.classList.add('active');
+      if (this.btnViewStats) this.btnViewStats.classList.add('active');
+      if (this.viewStats) this.viewStats.classList.add('active');
       this.renderStatsView();
     }
   }
@@ -662,11 +765,14 @@ class MomentumApp {
       card.style.setProperty('--i', idx);
 
       const totalEverCount = item.sessionsCount || 0;
-      const totalEverMins = item.totalMinutes || 0;
+      const sessionMins = this.sessions.filter(s => s.itemId === item.id).reduce((acc, s) => acc + (s.minutes || 0), 0);
+      const totalEverMins = Math.max(item.totalMinutes || 0, sessionMins);
+      const levelInfo = this.calculateLevelInfo(totalEverMins, item.title);
 
       card.innerHTML = `
         <div class="card-top">
           <div class="card-emoji-wrap">${item.emoji || '⚡'}</div>
+          <span class="card-level-tag" title="${this.escapeHtml(levelInfo.titleName)} (%${levelInfo.percent})">Lv. ${levelInfo.level}</span>
           <div class="card-actions-menu">
             <button class="card-action-btn btn-edit" title="Düzenle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -675,7 +781,7 @@ class MomentumApp {
         </div>
         <div class="card-bottom">
           <h4 class="card-title">${this.escapeHtml(item.title)}</h4>
-          <div class="card-stats-row" title="Bugün: ${todayCount} seans (${this.formatMinutesToHuman(todayMins)}) • Toplam: ${totalEverCount} seans (${this.formatMinutesToHuman(totalEverMins)})">
+          <div class="card-stats-row" title="Bugün: ${todayCount} seans (${this.formatMinutesToHuman(todayMins)}) • Toplam: ${totalEverCount} seans (${this.formatMinutesToHuman(totalEverMins)}) • ${this.escapeHtml(levelInfo.titleName)}">
             <span>${this.formatMinutesToHuman(todayMins)} bugün</span>
             <span class="card-badge-count ${todayCount > 0 ? 'active' : ''}">${todayCount} seans</span>
           </div>
@@ -1494,7 +1600,7 @@ class MomentumApp {
   // ==========================================
   // 13. İLERLEME & İSTATİSTİKLER GÖRÜNÜMÜ
   // ==========================================
-  calculateLevelInfo(totalMins) {
+  calculateLevelInfo(totalMins, prefixTitle = '') {
     const titles = [
       'Çırak Başlangıç',           // Seviye 1
       'Odak Yolcusu',              // Seviye 2
@@ -1556,12 +1662,17 @@ class MomentumApp {
 
     const mins = Math.max(0, totalMins || 0);
 
+    const getFormattedTitle = (lvl) => {
+      const base = titles[Math.min(lvl - 1, titles.length - 1)];
+      return prefixTitle ? `${prefixTitle} ${base}` : base;
+    };
+
     // Zirve seviyeye ulaşılmışsa (28.800 dk ve üzeri)
     if (mins >= TOTAL_MINUTES) {
       const lastCost = levelThresholds[stepCount] - levelThresholds[stepCount - 1];
       return {
         level: LEVEL_COUNT,
-        titleName: titles[LEVEL_COUNT - 1],
+        titleName: getFormattedTitle(LEVEL_COUNT),
         costForNext: lastCost,
         minsInCurrent: lastCost,
         minsLeft: 0,
@@ -1585,7 +1696,7 @@ class MomentumApp {
     const minsInCurrent = mins - currentLevelStart;
     const percent = Math.min(100, Math.round((minsInCurrent / costForNext) * 100));
     const minsLeft = nextLevelTarget - mins;
-    const titleName = titles[Math.min(level - 1, titles.length - 1)];
+    const titleName = getFormattedTitle(level);
 
     return {
       level,
@@ -1680,6 +1791,9 @@ class MomentumApp {
         streakEncouragement.style.background = 'rgba(234, 179, 8, 0.08)';
       }
     }
+
+    // Alt Başlık Bazlı Seviye & Profil Tablosunu Çiz
+    this.renderSubcategoryLevels();
   }
 
   // ==========================================
@@ -1808,14 +1922,376 @@ class MomentumApp {
     }[tag] || tag));
   }
 
+  // ==========================================
+  // 13.5 KATEGORİ & ALT BAŞLIK SEVİYE SİSTEMİ (PROFİL)
+  // ==========================================
+  renderSubcategoryLevels() {
+    if (!this.subcatLevelsGrid) return;
+    this.subcatLevelsGrid.innerHTML = '';
+
+    // Tüm kategorilerdeki alt başlıkları topla
+    const allItems = [];
+    ['spor', 'ders', 'yaraticilik'].forEach(cat => {
+      const list = this.items[cat] || [];
+      list.forEach(item => {
+        // Bu item'ın toplam dakikasını sessions ve item.totalMinutes üzerinden senkron hesapla
+        const sessionMins = this.sessions
+          .filter(s => s.itemId === item.id)
+          .reduce((acc, s) => acc + (s.minutes || 0), 0);
+        const sessionCount = this.sessions.filter(s => s.itemId === item.id).length;
+        const totalMins = Math.max(item.totalMinutes || 0, sessionMins);
+        const totalCount = Math.max(item.sessionsCount || 0, sessionCount);
+
+        const levelInfo = this.calculateLevelInfo(totalMins, item.title);
+
+        allItems.push({
+          ...item,
+          totalMins,
+          totalCount,
+          levelInfo
+        });
+      });
+    });
+
+    // Filtreleme (all, spor, ders, yaraticilik)
+    const filtered = this.subcatLevelFilter === 'all'
+      ? allItems
+      : allItems.filter(i => i.category === this.subcatLevelFilter);
+
+    // Sıralama: En yüksek seviye ve en çok odak süresi başta
+    filtered.sort((a, b) => {
+      if (b.levelInfo.level !== a.levelInfo.level) {
+        return b.levelInfo.level - a.levelInfo.level;
+      }
+      return b.totalMins - a.totalMins;
+    });
+
+    if (filtered.length === 0) {
+      this.subcatLevelsGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 36px; color: var(--text-dim);">
+          <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🌱</span>
+          Henüz bu kategoride alt başlık bulunmuyor.
+        </div>
+      `;
+      return;
+    }
+
+    const catLabels = { spor: '🏃 Spor', ders: '📚 Ders', yaraticilik: '🎨 Yaratıcılık' };
+
+    filtered.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'subcat-level-card';
+      card.style.setProperty('--card-color', item.color || '#6366f1');
+
+      // İlk 3'e özel liderlik derecesi
+      let rankHtml = '';
+      if (this.subcatLevelFilter === 'all' && item.totalMins > 0) {
+        if (index === 0) rankHtml = `<span class="subcat-rank-pill rank-1">👑 1. Lider</span>`;
+        else if (index === 1) rankHtml = `<span class="subcat-rank-pill rank-2">🥈 2. Sırada</span>`;
+        else if (index === 2) rankHtml = `<span class="subcat-rank-pill rank-3">🥉 3. Sırada</span>`;
+      }
+
+      card.innerHTML = `
+        <div class="subcat-level-card-top">
+          <div class="subcat-item-ident">
+            <div class="subcat-ident-emoji" style="border: 1px solid ${item.color || '#6366f1'}33; background: ${item.color || '#6366f1'}15;">
+              ${item.emoji || '⚡'}
+            </div>
+            <div class="subcat-ident-names">
+              <span class="subcat-ident-title">${this.escapeHtml(item.title)}</span>
+              <span class="subcat-ident-cat">${catLabels[item.category] || item.category}</span>
+            </div>
+          </div>
+          <div class="subcat-badge-wrap">
+            ${rankHtml}
+            <span class="subcat-level-number-badge">Seviye ${item.levelInfo.level}</span>
+          </div>
+        </div>
+
+        <div class="subcat-dynamic-title-banner">
+          <span class="subcat-custom-title-text">🎖️ ${this.escapeHtml(item.levelInfo.titleName)}</span>
+          <span class="subcat-percent-num">%${item.levelInfo.percent}</span>
+        </div>
+
+        <div class="subcat-progress-wrap">
+          <div class="progress-bar-bg" style="height: 6px;">
+            <div class="progress-bar-fill" style="width: ${item.levelInfo.percent}%; background: ${item.color || '#3b82f6'};"></div>
+          </div>
+          <div class="subcat-progress-meta">
+            <span>${this.formatMinutesToHuman(item.levelInfo.minsInCurrent)} / ${this.formatMinutesToHuman(item.levelInfo.costForNext)}</span>
+            <span>${item.levelInfo.isMaxLevel ? '🏆 Zirve Seviye' : `${this.formatMinutesToHuman(item.levelInfo.minsLeft)} kaldı`}</span>
+          </div>
+        </div>
+
+        <div class="subcat-card-bottom">
+          <span>Toplam: <strong>${this.formatMinutesToHuman(item.totalMins)}</strong> (${item.totalCount} seans)</span>
+          <button type="button" class="subcat-start-focus-btn" title="Bu aktivite için seans başlat">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>Odaklan</span>
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.subcat-start-focus-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openDurationModal(item);
+      });
+
+      this.subcatLevelsGrid.appendChild(card);
+    });
+  }
+
+  // ==========================================
+  // 15. GÖREVLERİM (TO-DO LİSTESİ) METODLARI
+  // ==========================================
+  populateTodoItemSelect() {
+    if (!this.todoItemSelect) return;
+    const currentVal = this.todoItemSelect.value;
+    this.todoItemSelect.innerHTML = '<option value="">📌 Genel (Bağımsız Görev)</option>';
+
+    const catLabels = { spor: '🏃 Spor', ders: '📚 Ders', yaraticilik: '🎨 Yaratıcılık' };
+    ['spor', 'ders', 'yaraticilik'].forEach(cat => {
+      const list = this.items[cat] || [];
+      if (list.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = catLabels[cat];
+        list.forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item.id;
+          opt.textContent = `${item.emoji || '⚡'} ${item.title}`;
+          group.appendChild(opt);
+        });
+        this.todoItemSelect.appendChild(group);
+      }
+    });
+
+    if (currentVal) this.todoItemSelect.value = currentVal;
+  }
+
+  handleCreateTodo(e) {
+    e.preventDefault();
+    const text = (this.todoInputText?.value || '').trim();
+    if (!text) return;
+
+    const selectedItemId = this.todoItemSelect?.value || '';
+    let targetItem = null;
+    if (selectedItemId) {
+      for (const cat of ['spor', 'ders', 'yaraticilik']) {
+        const found = this.items[cat]?.find(i => i.id === selectedItemId);
+        if (found) { targetItem = found; break; }
+      }
+    }
+
+    const newTodo = {
+      id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      text: text,
+      completed: false,
+      createdAt: Date.now(),
+      completedAt: null,
+      itemId: targetItem ? targetItem.id : null,
+      itemTitle: targetItem ? targetItem.title : null,
+      itemEmoji: targetItem ? targetItem.emoji : null,
+      itemColor: targetItem ? targetItem.color : null,
+      category: targetItem ? targetItem.category : 'general'
+    };
+
+    this.todos.unshift(newTodo);
+    this.saveTodos();
+    if (this.todoInputText) this.todoInputText.value = '';
+    this.renderTodos();
+  }
+
+  toggleTodo(id) {
+    const todo = this.todos.find(t => t.id === id);
+    if (!todo) return;
+    todo.completed = !todo.completed;
+    todo.completedAt = todo.completed ? Date.now() : null;
+    this.saveTodos();
+    this.renderTodos();
+  }
+
+  deleteTodo(id) {
+    this.todos = this.todos.filter(t => t.id !== id);
+    this.saveTodos();
+    this.renderTodos();
+  }
+
+  editTodo(id) {
+    const todo = this.todos.find(t => t.id === id);
+    if (!todo) return;
+    const newText = prompt("Görevi düzenle:", todo.text);
+    if (newText !== null && newText.trim() !== '') {
+      todo.text = newText.trim();
+      this.saveTodos();
+      this.renderTodos();
+    }
+  }
+
+  clearCompletedTodos() {
+    const completedCount = this.todos.filter(t => t.completed).length;
+    if (completedCount === 0) return;
+    if (confirm(`${completedCount} adet tamamlanan görevi silmek istediğine emin misin?`)) {
+      this.todos = this.todos.filter(t => !t.completed);
+      this.saveTodos();
+      this.renderTodos();
+    }
+  }
+
+  updateTodosBadge() {
+    if (!this.todosNavBadge) return;
+    const activeCount = this.todos.filter(t => !t.completed).length;
+    if (activeCount > 0) {
+      this.todosNavBadge.textContent = activeCount;
+      this.todosNavBadge.classList.remove('hidden');
+    } else {
+      this.todosNavBadge.classList.add('hidden');
+    }
+  }
+
+  renderTodos() {
+    if (!this.todosListContainer) return;
+    this.todosListContainer.innerHTML = '';
+
+    const total = this.todos.length;
+    const completed = this.todos.filter(t => t.completed).length;
+    const active = total - completed;
+
+    // Metrik sayaçlarını güncelle
+    if (this.todoMetricTotal) this.todoMetricTotal.textContent = total;
+    if (this.todoMetricActive) this.todoMetricActive.textContent = active;
+    if (this.todoMetricDone) this.todoMetricDone.textContent = completed;
+    if (this.todoCntAll) this.todoCntAll.textContent = total;
+    if (this.todoCntActive) this.todoCntActive.textContent = active;
+    if (this.todoCntCompleted) this.todoCntCompleted.textContent = completed;
+
+    this.updateTodosBadge();
+
+    // Filtreleme
+    let list = this.todos;
+    if (this.todoFilter === 'active') {
+      list = this.todos.filter(t => !t.completed);
+    } else if (this.todoFilter === 'completed') {
+      list = this.todos.filter(t => t.completed);
+    }
+
+    if (list.length === 0) {
+      let emptyMsg = "Henüz eklenmiş bir görev bulunmuyor. Yukarıdan serbest cümleni yazarak başla!";
+      if (this.todoFilter === 'active') emptyMsg = "Harika! Bekleyen hiçbir görevin yok, tüm hedefleri tamamladın 🎉";
+      else if (this.todoFilter === 'completed') emptyMsg = "Henüz tamamlanan bir görev yok. Hadi birini bitirelim!";
+
+      this.todosListContainer.innerHTML = `
+        <div class="todo-empty-state">
+          <div class="todo-empty-icon">📝</div>
+          <div class="todo-empty-text">${emptyMsg}</div>
+        </div>
+      `;
+      return;
+    }
+
+    list.forEach(todo => {
+      const card = document.createElement('div');
+      card.className = `todo-item-card ${todo.completed ? 'completed' : ''}`;
+
+      // Etiket
+      let tagHtml = '';
+      if (todo.itemTitle) {
+        tagHtml = `
+          <span class="todo-tag-pill" style="border-color: ${todo.itemColor || '#7c8cf8'}44; background: ${todo.itemColor || '#7c8cf8'}15; color: ${todo.itemColor || '#7c8cf8'};">
+            ${todo.itemEmoji || '⚡'} ${this.escapeHtml(todo.itemTitle)}
+          </span>
+        `;
+      } else {
+        tagHtml = `<span class="todo-tag-pill">📌 Genel</span>`;
+      }
+
+      // Tarih
+      const d = new Date(todo.createdAt || Date.now());
+      const dateText = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+
+      // Odaklanma butonu
+      let focusBtnHtml = '';
+      if (todo.itemId) {
+        focusBtnHtml = `
+          <button type="button" class="todo-act-btn focus-act" title="Bu aktiviteye odaklanarak görevi tamamla">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          </button>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="todo-item-left">
+          <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} title="Tamamlandı olarak işaretle">
+          <div class="todo-item-body">
+            <span class="todo-item-text">${this.escapeHtml(todo.text)}</span>
+            <div class="todo-item-meta">
+              ${tagHtml}
+              <span>${dateText}</span>
+            </div>
+          </div>
+        </div>
+        <div class="todo-item-actions">
+          ${focusBtnHtml}
+          <button type="button" class="todo-act-btn edit-act" title="Görevi Düzenle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </button>
+          <button type="button" class="todo-act-btn delete-act" title="Görevi Sil">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      // Checkbox event
+      const cb = card.querySelector('.todo-checkbox');
+      cb.addEventListener('change', () => this.toggleTodo(todo.id));
+
+      // Edit event
+      const editBtn = card.querySelector('.edit-act');
+      if (editBtn) editBtn.addEventListener('click', () => this.editTodo(todo.id));
+
+      // Delete event
+      const delBtn = card.querySelector('.delete-act');
+      if (delBtn) delBtn.addEventListener('click', () => this.deleteTodo(todo.id));
+
+      // Focus event
+      const focusBtn = card.querySelector('.focus-act');
+      if (focusBtn && todo.itemId) {
+        focusBtn.addEventListener('click', () => {
+          let foundItem = null;
+          for (const cat of ['spor', 'ders', 'yaraticilik']) {
+            const f = this.items[cat]?.find(i => i.id === todo.itemId);
+            if (f) { foundItem = f; break; }
+          }
+          if (foundItem) {
+            this.openDurationModal(foundItem);
+          }
+        });
+      }
+
+      this.todosListContainer.appendChild(card);
+    });
+  }
+
   render() {
     this.renderSquareCards();
     this.renderTopStats();
+    this.updateTodosBadge();
+    this.populateTodoItemSelect();
     if (this.activeView === 'calendar') {
       this.renderCalendar();
       this.renderDaySessions(this.selectedCalendarDate);
     } else if (this.activeView === 'stats') {
       this.renderStatsView();
+    } else if (this.activeView === 'todos') {
+      this.renderTodos();
     }
   }
 }
