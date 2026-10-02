@@ -126,8 +126,8 @@
           <span class="cat-req yaraticilik" id="req-yaraticilik">🎨 0/1</span>
         </div>
       </div>
-      <div class="dynamic-quote-pill" id="header-quote">
-        "Disiplin, hedefler ile başarı arasındaki köprüdür."
+      <div class="dynamic-quote-pill" id="header-quote" title="Mevcut Seviyen ve Unvanın • Tıkla ve detayları gör">
+        🎖️ <strong style="color: #60a5fa; font-weight: 600;">Seviye 1:</strong> Çırak Başlangıç
       </div>
     </section>
 
@@ -219,11 +219,15 @@
             <p class="stat-desc">Toplam odaklanma süresi</p>
             <div class="level-progress-wrap">
               <div class="level-info">
-                <span id="level-title">Seviye 1: Çaylak Odaklanıcı</span>
+                <span id="level-title">Seviye 1: Çırak Başlangıç</span>
                 <span id="level-percent">%0</span>
               </div>
               <div class="progress-bar-bg">
                 <div class="progress-bar-fill" id="level-progress-fill" style="width: 0%"></div>
+              </div>
+              <div class="level-sub-meta" id="level-sub-meta">
+                <span id="level-current-progress">0 dk tamamlandı</span>
+                <span id="level-next-cost">Sonraki seviyeye: 90 dk</span>
               </div>
             </div>
           </div>
@@ -363,6 +367,13 @@
             <label>Emoji Simgesi</label>
             <div class="emoji-picker-row" id="emoji-picker">
               <!-- Emojiler JS ile doldurulacak -->
+            </div>
+            <div class="custom-emoji-section">
+              <span class="custom-emoji-title">✨ Veya istediğin herhangi bir emojiyi gir / yapıştır:</span>
+              <div class="custom-emoji-input-wrap">
+                <input type="text" id="form-item-custom-emoji" class="custom-emoji-input" placeholder="⚡" maxlength="8" autocomplete="off" title="Dilediğin emojiyi buraya yaz veya yapıştır">
+                <span class="custom-emoji-tip">Mac Kısayolu: <kbd>Cmd</kbd> + <kbd>Ctrl</kbd> + <kbd>Boşluk</kbd></span>
+              </div>
             </div>
             <input type="hidden" id="form-item-emoji" value="⚡">
           </div>

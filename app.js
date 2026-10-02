@@ -18,7 +18,20 @@ const COLOR_PALETTE = [
   { name: 'Sıcak Şeftali / Kil', hex: '#fb923c' }
 ];
 
-const EMOJI_LIST = ['⚡', '🏃‍♂️', '💪', '🧘‍♂️', '🚴‍♂️', '📚', '💻', '🧠', '✍️', '📖', '🎨', '🎵', '💡', '🚀', '🎯', '✨', '☕', '🔥'];
+const EMOJI_LIST = [
+  // Hızlı & Genel
+  '⚡', '🎯', '🔥', '✨', '🚀', '💡', '☕',
+  // Spor & Egzersiz (Yürüyüş, Yüzme, Kalisteniks, Halter, vb.)
+  '🏃‍♂️', '🚶‍♂️', '🏊‍♂️', '🤸‍♂️', '🏋️‍♂️', '🧗‍♂️', '🚴‍♂️', '🧘‍♂️', '🥊', '⚽', '💪',
+  // Müzik & Enstrümanlar (Davul, Piyano, Gitar, vb.)
+  '🥁', '🎹', '🎸', '🎻', '🎙️', '🎵', '🎧',
+  // Diller & Bayraklar (İngilizce, Almanca, vb.)
+  '🇬🇧', '🇩🇪', '🇯🇵', '🇹🇷', '✍️',
+  // Tarih, Antik & Zihin
+  '🏛️', '📜', '⏳', '🧠', '📚', '📖', '💻', '🎨', '🔬', '🔭',
+  // Tatlı Böcekler & Doğa
+  '🐞', '🌿', '🌱', '👑'
+];
 
 const DEFAULT_ITEMS = {
   spor: [
@@ -156,8 +169,8 @@ class MomentumApp {
     }
 
     // Sunucu adresi: HTTP ise origin, file:// ise 127.0.0.1:8080
-    const baseUrl = window.location.protocol.startsWith('http') 
-      ? window.location.origin 
+    const baseUrl = window.location.protocol.startsWith('http')
+      ? window.location.origin
       : 'http://127.0.0.1:8080';
 
     this.syncState = {
@@ -420,6 +433,7 @@ class MomentumApp {
     this.formItemId = document.getElementById('form-item-id');
     this.formItemName = document.getElementById('form-item-name');
     this.formItemEmoji = document.getElementById('form-item-emoji');
+    this.formItemCustomEmoji = document.getElementById('form-item-custom-emoji');
     this.formItemColor = document.getElementById('form-item-color');
     this.emojiPicker = document.getElementById('emoji-picker');
     this.colorPicker = document.getElementById('color-picker');
@@ -476,6 +490,8 @@ class MomentumApp {
     this.levelTitle = document.getElementById('level-title');
     this.levelPercent = document.getElementById('level-percent');
     this.levelProgressFill = document.getElementById('level-progress-fill');
+    this.levelCurrentProgress = document.getElementById('level-current-progress');
+    this.levelNextCost = document.getElementById('level-next-cost');
     this.progSporVal = document.getElementById('prog-spor-val');
     this.progSporBar = document.getElementById('prog-spor-bar');
     this.progDersVal = document.getElementById('prog-ders-val');
@@ -632,12 +648,21 @@ class MomentumApp {
   renderSquareCards() {
     this.itemsGrid.innerHTML = '';
     const currentList = this.items[this.activeCategory] || [];
+    const todayStr = this.formatDateIso(new Date());
 
     currentList.forEach((item, idx) => {
+      // O güne ait tamamlanmış seanslar ve süre (her yeni gün 0'dan başlar)
+      const todaySessions = this.sessions.filter(s => s.itemId === item.id && s.dateStr === todayStr);
+      const todayCount = todaySessions.length;
+      const todayMins = todaySessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+
       const card = document.createElement('div');
       card.className = 'square-card';
       card.style.setProperty('--card-color', item.color || '#6366f1');
       card.style.setProperty('--i', idx);
+
+      const totalEverCount = item.sessionsCount || 0;
+      const totalEverMins = item.totalMinutes || 0;
 
       card.innerHTML = `
         <div class="card-top">
@@ -650,9 +675,9 @@ class MomentumApp {
         </div>
         <div class="card-bottom">
           <h4 class="card-title">${this.escapeHtml(item.title)}</h4>
-          <div class="card-stats-row">
-            <span>${this.formatMinutesToHuman(item.totalMinutes || 0)} odak</span>
-            <span class="card-badge-count">${item.sessionsCount || 0} seans</span>
+          <div class="card-stats-row" title="Bugün: ${todayCount} seans (${this.formatMinutesToHuman(todayMins)}) • Toplam: ${totalEverCount} seans (${this.formatMinutesToHuman(totalEverMins)})">
+            <span>${this.formatMinutesToHuman(todayMins)} bugün</span>
+            <span class="card-badge-count ${todayCount > 0 ? 'active' : ''}">${todayCount} seans</span>
           </div>
         </div>
       `;
@@ -686,10 +711,14 @@ class MomentumApp {
   }
 
   updateCategoryCounters() {
+    const todayStr = this.formatDateIso(new Date());
     ['spor', 'ders', 'yaraticilik'].forEach(c => {
       const el = document.getElementById(`count-${c}`);
       if (el) {
-        el.textContent = (this.items[c] || []).length;
+        // Bugün bu kategoride tamamlanan seans sayısı
+        const todayCatSessions = this.sessions.filter(s => s.category === c && s.dateStr === todayStr);
+        el.textContent = todayCatSessions.length;
+        el.title = `Bugün tamamlanan: ${todayCatSessions.length} seans`;
       }
     });
   }
@@ -709,9 +738,27 @@ class MomentumApp {
         document.querySelectorAll('.emoji-opt-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         this.formItemEmoji.value = emoji;
+        if (this.formItemCustomEmoji) {
+          this.formItemCustomEmoji.value = emoji;
+          this.formItemCustomEmoji.classList.remove('active-custom');
+        }
       });
       this.emojiPicker.appendChild(btn);
     });
+
+    // Sınırsız Özel Emoji Girişi Eventi
+    if (this.formItemCustomEmoji) {
+      this.formItemCustomEmoji.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          this.formItemEmoji.value = val;
+          document.querySelectorAll('.emoji-opt-btn').forEach(b => {
+            b.classList.toggle('selected', b.textContent === val);
+          });
+          this.formItemCustomEmoji.classList.add('active-custom');
+        }
+      });
+    }
 
     // Renkler (Göz yormayan soft modern tonlar)
     this.colorPicker.innerHTML = '';
@@ -737,13 +784,23 @@ class MomentumApp {
       this.formItemId.value = item.id;
       this.formItemName.value = item.title;
       this.formItemEmoji.value = item.emoji || '⚡';
+      if (this.formItemCustomEmoji) {
+        this.formItemCustomEmoji.value = item.emoji || '⚡';
+      }
       this.formItemColor.value = item.color || '#6366f1';
       this.btnDeleteItem.classList.remove('hidden');
 
       // Emoji seçimini işaretle
+      let matchedInList = false;
       document.querySelectorAll('.emoji-opt-btn').forEach(b => {
-        b.classList.toggle('selected', b.textContent === item.emoji);
+        const isMatch = b.textContent === item.emoji;
+        b.classList.toggle('selected', isMatch);
+        if (isMatch) matchedInList = true;
       });
+      if (this.formItemCustomEmoji) {
+        this.formItemCustomEmoji.classList.toggle('active-custom', !matchedInList);
+      }
+
       // Renk seçimini işaretle
       document.querySelectorAll('.color-swatch').forEach(s => {
         s.classList.toggle('selected', s.style.backgroundColor === item.color || s.style.backgroundColor.includes(item.color));
@@ -754,7 +811,17 @@ class MomentumApp {
       this.formModalSubtitle.textContent = `${catNames[this.activeCategory]} kategorisine yeni bir kare parça ekle`;
       this.formItemId.value = '';
       this.formItemName.value = '';
+      this.formItemEmoji.value = '⚡';
+      if (this.formItemCustomEmoji) {
+        this.formItemCustomEmoji.value = '';
+        this.formItemCustomEmoji.classList.remove('active-custom');
+      }
       this.btnDeleteItem.classList.add('hidden');
+
+      // İlk emojiyi seç
+      document.querySelectorAll('.emoji-opt-btn').forEach((b, idx) => {
+        b.classList.toggle('selected', idx === 0);
+      });
     }
 
     this.itemFormModal.classList.add('active');
@@ -1427,6 +1494,110 @@ class MomentumApp {
   // ==========================================
   // 13. İLERLEME & İSTATİSTİKLER GÖRÜNÜMÜ
   // ==========================================
+  calculateLevelInfo(totalMins) {
+    const titles = [
+      'Çırak Başlangıç',           // Seviye 1
+      'Odak Yolcusu',              // Seviye 2
+      'Sabırlı Arayışçı',          // Seviye 3
+      'Düzenli Uygulayıcı',        // Seviye 4
+      'Zihin Çırağı',              // Seviye 5
+      'İstikrarlı İrade',          // Seviye 6
+      'Derinleşen Odak',           // Seviye 7
+      'Alışkanlık Mimarı',         // Seviye 8
+      'Akış Kaşifi (Flow)',        // Seviye 9
+      'Disiplin Ustası',           // Seviye 10
+      'Sessiz Çalışkan',           // Seviye 11
+      'Odak Zanaatkarı',            // Seviye 12
+      'Zihinsel Dayanıklılık',      // Seviye 13
+      'Derin Çalışma Şövalyesi',    // Seviye 14
+      'Zirve Performansçı',         // Seviye 15
+      'Zaman Bükücü',               // Seviye 16
+      'Sarsılmaz İrade',            // Seviye 17
+      'Akış Ustası (Flow Master)',  // Seviye 18
+      'Zihin Filozofu',             // Seviye 19
+      'Durdurulamaz Güç',           // Seviye 20
+      'Mutlak Konsantrasyon',       // Seviye 21
+      'Odak Virtüözü',              // Seviye 22
+      'Kozmik Zihin',               // Seviye 23
+      'Efsanevi Usta',              // Seviye 24
+      'Transandantal Bilge'         // Seviye 25+
+    ];
+
+    // =====================================================
+    // 25. seviyeye toplam 28.800 dakika = 480 saat
+    // olacak şekilde geometrik progression
+    // =====================================================
+    const TOTAL_MINUTES = 28800; // 480 saat
+    const LEVEL_COUNT = 25;
+    const GROWTH = 1.1577;
+
+    // Seviye 1'den Seviye 25'e 24 aşamalı geçiş
+    const stepCount = LEVEL_COUNT - 1;
+    const weights = Array.from(
+      { length: stepCount },
+      (_, i) => Math.pow(GROWTH, i)
+    );
+
+    const weightSum = weights.reduce((sum, w) => sum + w, 0);
+
+    // Her seviyenin artışını toplam 28.800 dakikaya normalize et
+    const levelIncrements = weights.map(
+      w => (w / weightSum) * TOTAL_MINUTES
+    );
+
+    // Kümülatif eşikler: [0, 139, 300, ..., 28800]
+    const levelThresholds = [0];
+    for (let i = 0; i < stepCount; i++) {
+      levelThresholds.push(
+        Math.round(levelThresholds[i] + levelIncrements[i])
+      );
+    }
+    levelThresholds[levelThresholds.length - 1] = TOTAL_MINUTES;
+
+    const mins = Math.max(0, totalMins || 0);
+
+    // Zirve seviyeye ulaşılmışsa (28.800 dk ve üzeri)
+    if (mins >= TOTAL_MINUTES) {
+      const lastCost = levelThresholds[stepCount] - levelThresholds[stepCount - 1];
+      return {
+        level: LEVEL_COUNT,
+        titleName: titles[LEVEL_COUNT - 1],
+        costForNext: lastCost,
+        minsInCurrent: lastCost,
+        minsLeft: 0,
+        percent: 100,
+        isMaxLevel: true
+      };
+    }
+
+    // Mevcut seviyeyi bul (1-indexed)
+    let level = 1;
+    for (let i = 1; i < levelThresholds.length; i++) {
+      if (mins < levelThresholds[i]) {
+        level = i;
+        break;
+      }
+    }
+
+    const currentLevelStart = levelThresholds[level - 1];
+    const nextLevelTarget = levelThresholds[level];
+    const costForNext = nextLevelTarget - currentLevelStart;
+    const minsInCurrent = mins - currentLevelStart;
+    const percent = Math.min(100, Math.round((minsInCurrent / costForNext) * 100));
+    const minsLeft = nextLevelTarget - mins;
+    const titleName = titles[Math.min(level - 1, titles.length - 1)];
+
+    return {
+      level,
+      titleName,
+      costForNext,
+      minsInCurrent,
+      minsLeft,
+      percent,
+      isMaxLevel: false
+    };
+  }
+
   renderStatsView() {
     const totalSessions = this.sessions.length;
     const totalMins = this.sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
@@ -1437,20 +1608,23 @@ class MomentumApp {
     const streak = this.calculateStreak();
     this.statStreakBig.textContent = `${streak} Gün`;
 
-    // Seviye Hesaplama (Her 60 dk = 1 Seviye)
-    const level = Math.floor(totalMins / 60) + 1;
-    const minsInCurrentLevel = totalMins % 60;
-    const levelPercentVal = Math.round((minsInCurrentLevel / 60) * 100);
+    // Zorlaştırılmış ve Kademeli Seviye Sistemi (Kullanıcıyı motive eden 25+ unvan ve artan zorluk eğrisi)
+    const levelInfo = this.calculateLevelInfo(totalMins);
 
-    const titles = [
-      'Çaylak Odaklanıcı', 'Düzenli Çalışan', 'İstikrarlı Zihin',
-      'Derinleşen Usta', 'Disiplin Şampiyonu', 'Zirve Performans', 'Durdurulamaz Güç'
-    ];
-    const titleName = titles[Math.min(level - 1, titles.length - 1)];
+    this.levelTitle.textContent = `Seviye ${levelInfo.level}: ${levelInfo.titleName}`;
+    this.levelPercent.textContent = `%${levelInfo.percent}`;
+    this.levelProgressFill.style.width = `${levelInfo.percent}%`;
 
-    this.levelTitle.textContent = `Seviye ${level}: ${titleName}`;
-    this.levelPercent.textContent = `%${levelPercentVal}`;
-    this.levelProgressFill.style.width = `${levelPercentVal}%`;
+    if (this.levelCurrentProgress) {
+      this.levelCurrentProgress.textContent = `${this.formatMinutesToHuman(levelInfo.minsInCurrent)} / ${this.formatMinutesToHuman(levelInfo.costForNext)}`;
+    }
+    if (this.levelNextCost) {
+      if (levelInfo.isMaxLevel) {
+        this.levelNextCost.textContent = `🏆 Zirve Seviye Tamamlandı (480 Saat)`;
+      } else {
+        this.levelNextCost.textContent = `Sonraki seviyeye: ${this.formatMinutesToHuman(levelInfo.minsLeft)} kaldı`;
+      }
+    }
 
     // Kategori Dağılımı
     const catMins = { spor: 0, ders: 0, yaraticilik: 0 };
@@ -1592,6 +1766,15 @@ class MomentumApp {
 
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
     this.todayDateText.textContent = new Date().toLocaleDateString('tr-TR', options);
+
+    // Ana Ekran Seviye & Unvan Rozeti
+    const totalAllMins = this.sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+    const levelInfo = this.calculateLevelInfo(totalAllMins);
+    if (this.headerQuote) {
+      this.headerQuote.innerHTML = `🎖️ <strong style="color: #60a5fa; font-weight: 600;">Seviye ${levelInfo.level}:</strong> ${levelInfo.titleName}`;
+      this.headerQuote.title = `Genel Seviyen: ${levelInfo.level} - ${levelInfo.titleName} (%${levelInfo.percent} • Sonraki seviyeye: ${this.formatMinutesToHuman(levelInfo.minsLeft)}) • Tıkla ve detayları gör`;
+      this.headerQuote.onclick = () => this.switchView('stats');
+    }
   }
 
   formatMinutesToHuman(mins) {
