@@ -88,39 +88,30 @@
         "id": "ders-1790884272838",
         "category": "ders",
         "title": "Almanca",
-        "emoji": "🇩🇪",
-        "color": "#eab308",
+        "emoji": "📖",
+        "color": "#3ecf8e",
         "sessionsCount": 2,
         "totalMinutes": 30
-      },
-      {
-        "id": "ders-1791051478756",
-        "category": "ders",
-        "title": "History",
-        "emoji": "📜",
-        "color": "#fb923c",
-        "sessionsCount": 0,
-        "totalMinutes": 0
       }
     ],
     "yaraticilik": [
       {
         "id": "yar-1",
         "category": "yaraticilik",
-        "title": "Bateri",
-        "emoji": "🥁",
-        "color": "#38bdf8",
+        "title": "Çizim & Tasarım",
+        "emoji": "🎨",
+        "color": "#eab308",
         "sessionsCount": 0,
         "totalMinutes": 0
       },
       {
         "id": "yar-2",
         "category": "yaraticilik",
-        "title": "gitar",
-        "emoji": "🎸",
-        "color": "#e06c75",
-        "sessionsCount": 2,
-        "totalMinutes": 75
+        "title": "Müzik & Enstrüman",
+        "emoji": "🎵",
+        "color": "#fb923c",
+        "sessionsCount": 1,
+        "totalMinutes": 45
       },
       {
         "id": "yar-3",
@@ -134,9 +125,9 @@
       {
         "id": "yar-4",
         "category": "yaraticilik",
-        "title": "Music Production",
-        "emoji": "🎵",
-        "color": "#94a3b8",
+        "title": "Fikir & Beyin Fırtınası",
+        "emoji": "💡",
+        "color": "#a78bfa",
         "sessionsCount": 0,
         "totalMinutes": 0
       }
@@ -340,17 +331,6 @@
       "minutes": 30,
       "timestamp": 1791051449557,
       "dateStr": "2026-10-03"
-    },
-    {
-      "id": "ses-1791051494192",
-      "itemId": "yar-2",
-      "itemTitle": "Müzik & Enstrüman",
-      "itemEmoji": "🎵",
-      "category": "yaraticilik",
-      "color": "#fb923c",
-      "minutes": 30,
-      "timestamp": 1791051494192,
-      "dateStr": "2026-10-03"
     }
   ],
   "timer": {
@@ -362,5 +342,5 @@
     "totalSeconds": 1800
   },
   "todos": [],
-  "lastUpdated": 1791051787888
+  "lastUpdated": 1791051449582
 }

@@ -1602,7 +1602,7 @@ class MomentumApp {
 
       if (dateStr === todayStr) cell.classList.add('today');
       if (dateStr === selectedStr) cell.classList.add('selected');
-      if (this.isDateStreakQualified(dateStr)) cell.classList.add('streak-perfect');
+      if (this.isDatePerfectDay(dateStr)) cell.classList.add('streak-perfect');
 
       // O günkü seansları bul
       const daySessions = this.sessions.filter(s => s.dateStr === dateStr);
@@ -1854,19 +1854,19 @@ class MomentumApp {
     if (streakEncouragement) {
       const todayStr = this.formatDateIso(new Date());
       const isTodayDone = this.isDateStreakQualified(todayStr);
-      if (isTodayDone) {
-        streakEncouragement.innerHTML = `✨ <strong>Harika!</strong> Bugün Spor, Ders ve Yaratıcılık seanslarının 3'ünü de tamamladın. Seri'n güvende!`;
+      const isTodayPerfect = this.isDatePerfectDay(todayStr);
+      if (isTodayPerfect) {
+        streakEncouragement.innerHTML = `🏆 <strong>Kusursuz Gün!</strong> Bugün Spor, Ders ve Yaratıcılık seanslarının 3'ünü de tamamladın. Harikasın!`;
+        streakEncouragement.style.color = 'var(--color-spor)';
+        streakEncouragement.style.borderColor = 'rgba(62, 207, 142, 0.25)';
+        streakEncouragement.style.background = 'rgba(62, 207, 142, 0.08)';
+      } else if (isTodayDone) {
+        streakEncouragement.innerHTML = `✨ <strong>Seri Güvende!</strong> Bugün seansını tamamladın ve serini sürdürdün.`;
         streakEncouragement.style.color = 'var(--color-spor)';
         streakEncouragement.style.borderColor = 'rgba(62, 207, 142, 0.25)';
         streakEncouragement.style.background = 'rgba(62, 207, 142, 0.08)';
       } else {
-        const todaySessions = this.sessions.filter(s => s.dateStr === todayStr);
-        const missing = [];
-        if (!todaySessions.some(s => s.category === 'spor')) missing.push('🏃 Spor');
-        if (!todaySessions.some(s => s.category === 'ders')) missing.push('📚 Ders');
-        if (!todaySessions.some(s => s.category === 'yaraticilik')) missing.push('🎨 Yaratıcılık');
-
-        streakEncouragement.innerHTML = `⚠️ Günlük seriyi korumak/sürdürmek için bugün eksik olanlar: <strong>${missing.join(', ')}</strong>`;
+        streakEncouragement.innerHTML = `🔥 Günlük serini sürdürmek için bugün en az 1 seans tamamlamayı unutma!`;
         streakEncouragement.style.color = '#eab308';
         streakEncouragement.style.borderColor = 'rgba(234, 179, 8, 0.25)';
         streakEncouragement.style.background = 'rgba(234, 179, 8, 0.08)';
@@ -1880,8 +1880,13 @@ class MomentumApp {
   // ==========================================
   // 14. YARDIMCI HESAPLAMALAR & GENEL RENDER
   // ==========================================
-  // Bir günün streak sayılması için Spor, Ders ve Yaratıcılık seanslarının her birinden en az 1'er tane tamamlanmış olmalıdır
+  // Bir günün streak sayılması için en az 1 seans tamamlanmış olması yeterlidir
   isDateStreakQualified(dateStr) {
+    return this.sessions.some(s => s.dateStr === dateStr);
+  }
+
+  // 3 Ana Kategorinin (Spor, Ders, Yaratıcılık) tamamlanıp tamamlanmadığı kontrolü (Kusursuz Gün)
+  isDatePerfectDay(dateStr) {
     const daySessions = this.sessions.filter(s => s.dateStr === dateStr);
     const hasSpor = daySessions.some(s => s.category === 'spor');
     const hasDers = daySessions.some(s => s.category === 'ders');

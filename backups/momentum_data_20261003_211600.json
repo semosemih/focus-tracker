@@ -7,8 +7,8 @@
         "title": "Kardiyo & Koşu",
         "emoji": "🏃‍♂️",
         "color": "#3ecf8e",
-        "sessionsCount": 2,
-        "totalMinutes": 60
+        "sessionsCount": 0,
+        "totalMinutes": 0
       },
       {
         "id": "spor-2",
@@ -24,7 +24,7 @@
         "category": "spor",
         "title": "Esneme & Mobilite",
         "emoji": "🧘‍♂️",
-        "color": "#3ecf8e",
+        "color": "#14b8a6",
         "sessionsCount": 1,
         "totalMinutes": 15
       },
@@ -33,7 +33,7 @@
         "category": "spor",
         "title": "Bisiklet & Yürüyüş",
         "emoji": "🚴‍♂️",
-        "color": "#38bdf8",
+        "color": "#84cc16",
         "sessionsCount": 1,
         "totalMinutes": 15
       },
@@ -63,8 +63,8 @@
         "title": "Kodlama & Proje",
         "emoji": "💻",
         "color": "#a78bfa",
-        "sessionsCount": 4,
-        "totalMinutes": 135
+        "sessionsCount": 3,
+        "totalMinutes": 90
       },
       {
         "id": "ders-3",
@@ -72,8 +72,8 @@
         "title": "İngilizce / Dil",
         "emoji": "✍️",
         "color": "#38bdf8",
-        "sessionsCount": 4,
-        "totalMinutes": 105
+        "sessionsCount": 3,
+        "totalMinutes": 75
       },
       {
         "id": "ders-4",
@@ -88,39 +88,30 @@
         "id": "ders-1790884272838",
         "category": "ders",
         "title": "Almanca",
-        "emoji": "🇩🇪",
-        "color": "#eab308",
+        "emoji": "📖",
+        "color": "#3ecf8e",
         "sessionsCount": 2,
         "totalMinutes": 30
-      },
-      {
-        "id": "ders-1791051478756",
-        "category": "ders",
-        "title": "History",
-        "emoji": "📜",
-        "color": "#fb923c",
-        "sessionsCount": 0,
-        "totalMinutes": 0
       }
     ],
     "yaraticilik": [
       {
         "id": "yar-1",
         "category": "yaraticilik",
-        "title": "Bateri",
-        "emoji": "🥁",
-        "color": "#38bdf8",
+        "title": "Çizim & Tasarım",
+        "emoji": "🎨",
+        "color": "#eab308",
         "sessionsCount": 0,
         "totalMinutes": 0
       },
       {
         "id": "yar-2",
         "category": "yaraticilik",
-        "title": "gitar",
-        "emoji": "🎸",
-        "color": "#e06c75",
-        "sessionsCount": 2,
-        "totalMinutes": 75
+        "title": "Bateri Çalmak",
+        "emoji": "🎵",
+        "color": "#fb923c",
+        "sessionsCount": 1,
+        "totalMinutes": 45
       },
       {
         "id": "yar-3",
@@ -134,9 +125,9 @@
       {
         "id": "yar-4",
         "category": "yaraticilik",
-        "title": "Music Production",
-        "emoji": "🎵",
-        "color": "#94a3b8",
+        "title": "Fikir & Beyin Fırtınası",
+        "emoji": "💡",
+        "color": "#a78bfa",
         "sessionsCount": 0,
         "totalMinutes": 0
       }
@@ -296,71 +287,16 @@
       "minutes": 15,
       "timestamp": 1790958600000,
       "dateStr": "2026-10-02"
-    },
-    {
-      "id": "ses-1791051419313",
-      "itemId": "spor-1",
-      "itemTitle": "Kardiyo & Koşu",
-      "itemEmoji": "🏃‍♂️",
-      "category": "spor",
-      "color": "#3ecf8e",
-      "minutes": 45,
-      "timestamp": 1791051419313,
-      "dateStr": "2026-10-03"
-    },
-    {
-      "id": "ses-1791051423463",
-      "itemId": "spor-1",
-      "itemTitle": "Kardiyo & Koşu",
-      "itemEmoji": "🏃‍♂️",
-      "category": "spor",
-      "color": "#3ecf8e",
-      "minutes": 15,
-      "timestamp": 1791051423463,
-      "dateStr": "2026-10-03"
-    },
-    {
-      "id": "ses-1791051443409",
-      "itemId": "ders-2",
-      "itemTitle": "Kodlama & Proje",
-      "itemEmoji": "💻",
-      "category": "ders",
-      "color": "#a78bfa",
-      "minutes": 45,
-      "timestamp": 1791051443409,
-      "dateStr": "2026-10-03"
-    },
-    {
-      "id": "ses-1791051449557",
-      "itemId": "ders-3",
-      "itemTitle": "İngilizce / Dil",
-      "itemEmoji": "✍️",
-      "category": "ders",
-      "color": "#38bdf8",
-      "minutes": 30,
-      "timestamp": 1791051449557,
-      "dateStr": "2026-10-03"
-    },
-    {
-      "id": "ses-1791051494192",
-      "itemId": "yar-2",
-      "itemTitle": "Müzik & Enstrüman",
-      "itemEmoji": "🎵",
-      "category": "yaraticilik",
-      "color": "#fb923c",
-      "minutes": 30,
-      "timestamp": 1791051494192,
-      "dateStr": "2026-10-03"
     }
   ],
   "timer": {
     "active": false,
     "item": null,
-    "durationMinutes": 30,
+    "durationMinutes": 15,
     "targetEndTime": null,
-    "remainingSeconds": 1800,
-    "totalSeconds": 1800
+    "remainingSeconds": 880,
+    "totalSeconds": 900
   },
   "todos": [],
-  "lastUpdated": 1791051787888
+  "lastUpdated": 1791051352244
 }
