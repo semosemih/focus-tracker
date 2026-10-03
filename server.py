@@ -21,13 +21,34 @@ import threading
 
 # Dosya koruma listesi (Ağdaki cihazların indirmesi engellenen dosyalar)
 BLOCKED_EXTENSIONS = {'.command', '.sh', '.py', '.git', '.log'}
-BLOCKED_FILES = {'momentum_data.json', 'server.py', 'Baslat.command', 'Telefonda_Ac.command', 'Durdur.command'}
+BLOCKED_FILES = {'momentum_data.json', 'server.py', 'Baslat.command', 'Telefonda_Ac.command', 'Durdur.command', 'backups'}
 
 class MomentumSyncServer:
     def __init__(self, db_path):
         self.db_path = db_path
         self.lock = threading.Lock()
         self.data = self.load()
+        # Sunucu başlangıcında hemen bir güvenlik yedeği al
+        self.create_backup()
+
+    def create_backup(self):
+        try:
+            backup_dir = os.path.join(BASE_DIR, "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            backup_path = os.path.join(backup_dir, f"momentum_data_{ts}.json")
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+            # En fazla 30 dosya tut, eskileri sil
+            all_backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("momentum_data_") and f.endswith(".json")])
+            if len(all_backups) > 30:
+                for old_f in all_backups[:-30]:
+                    try:
+                        os.remove(os.path.join(backup_dir, old_f))
+                    except:
+                        pass
+        except Exception as e:
+            print(f"[!] Yedekleme uyarısı: {e}")
 
     def load(self):
         if os.path.exists(self.db_path):
@@ -61,6 +82,7 @@ class MomentumSyncServer:
                 with open(tmp_path, 'w', encoding='utf-8') as f:
                     json.dump(self.data, f, ensure_ascii=False, indent=2)
                 os.replace(tmp_path, self.db_path)
+                self.create_backup()
                 return True
             except Exception as e:
                 print(f"[!] Veritabanı kayıt hatası: {e}")

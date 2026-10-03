@@ -221,6 +221,83 @@ class MomentumApp {
     if (this.syncText) this.syncText.textContent = text;
   }
 
+  mergeSessions(localList, remoteList) {
+    const map = new Map();
+    (remoteList || []).forEach(s => {
+      if (s && (s.id || s.timestamp)) {
+        map.set(s.id || `ses-${s.timestamp}`, s);
+      }
+    });
+    (localList || []).forEach(s => {
+      if (s && (s.id || s.timestamp)) {
+        const id = s.id || `ses-${s.timestamp}`;
+        if (!map.has(id)) {
+          map.set(id, s);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  }
+
+  mergeTodos(localList, remoteList) {
+    const map = new Map();
+    (remoteList || []).forEach(t => {
+      if (t && t.id) map.set(t.id, t);
+    });
+    (localList || []).forEach(t => {
+      if (t && t.id) {
+        const existing = map.get(t.id);
+        if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
+          map.set(t.id, t);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  mergeItems(localItems, remoteItems) {
+    const result = {};
+    const categories = ['spor', 'ders', 'yaraticilik'];
+    categories.forEach(cat => {
+      const itemMap = new Map();
+      const rList = (remoteItems && remoteItems[cat]) || [];
+      const lList = (localItems && localItems[cat]) || [];
+      rList.forEach(it => { if (it && it.id) itemMap.set(it.id, it); });
+      lList.forEach(it => {
+        if (it && it.id) {
+          if (!itemMap.has(it.id)) {
+            itemMap.set(it.id, it);
+          } else {
+            const existing = itemMap.get(it.id);
+            itemMap.set(it.id, { ...existing, ...it });
+          }
+        }
+      });
+      result[cat] = Array.from(itemMap.values());
+    });
+    return result;
+  }
+
+  recalculateStatsFromSessions() {
+    if (!this.items || !this.sessions) return;
+    const counts = {};
+    const minutes = {};
+    this.sessions.forEach(s => {
+      if (s && s.itemId) {
+        counts[s.itemId] = (counts[s.itemId] || 0) + 1;
+        minutes[s.itemId] = (minutes[s.itemId] || 0) + (s.minutes || 0);
+      }
+    });
+    ['spor', 'ders', 'yaraticilik'].forEach(cat => {
+      if (Array.isArray(this.items[cat])) {
+        this.items[cat].forEach(it => {
+          it.sessionsCount = counts[it.id] || 0;
+          it.totalMinutes = minutes[it.id] || 0;
+        });
+      }
+    });
+  }
+
   async fetchInitialSync() {
     try {
       const url = `${this.syncState.baseUrl}/api/data?pin=${encodeURIComponent(this.syncState.pin)}`;
@@ -231,27 +308,31 @@ class MomentumApp {
         this.syncState.lastSync = data.lastUpdated || Date.now();
         this.updateSyncBadge(true, 'Canlı Eşit');
 
-        // Sunucuda seanslar varsa sunucudan yükle
-        if (Array.isArray(data.sessions) && data.sessions.length > 0) {
-          this.sessions = data.sessions;
-          localStorage.setItem('momentum_sessions', JSON.stringify(this.sessions));
-          if (data.items && Object.keys(data.items).length > 0) {
-            this.items = data.items;
-            localStorage.setItem('momentum_items', JSON.stringify(this.items));
-          }
-          if (Array.isArray(data.todos)) {
-            this.todos = data.todos;
-            localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
-          }
-          this.render();
-        } else if (this.sessions && this.sessions.length > 0) {
-          // Sunucu henüz boş (yeni açıldı) ama bu cihazda seanslar var (örn. Mac'teki 5 seans)
-          // Mevcut seansları sunucuya yükle ki telefonda hemen görünsün!
+        const serverSessions = Array.isArray(data.sessions) ? data.sessions : [];
+        const localSessions = Array.isArray(this.sessions) ? this.sessions : [];
+
+        // Asla ezme! Akıllı birleştirme (smart merge) yap
+        const mergedSessions = this.mergeSessions(localSessions, serverSessions);
+        const mergedTodos = this.mergeTodos(this.todos || [], data.todos || []);
+        const mergedItems = this.mergeItems(this.items || {}, data.items || {});
+
+        const hadLocalExtraSessions = mergedSessions.length > serverSessions.length;
+        const hadLocalExtraTodos = mergedTodos.length > (Array.isArray(data.todos) ? data.todos.length : 0);
+
+        this.sessions = mergedSessions;
+        this.todos = mergedTodos;
+        this.items = mergedItems;
+        this.recalculateStatsFromSessions();
+
+        localStorage.setItem('momentum_sessions', JSON.stringify(this.sessions));
+        localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
+        localStorage.setItem('momentum_items', JSON.stringify(this.items));
+        if (this.updateTodosBadge) this.updateTodosBadge();
+        this.render();
+
+        // Eğer yerelde sunucuda henüz olmayan seans/görev varsa hemen sunucuya da gönder
+        if (hadLocalExtraSessions || hadLocalExtraTodos) {
           await this.pushSyncToServer();
-        } else if (Array.isArray(data.todos)) {
-          this.todos = data.todos;
-          localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
-          this.render();
         }
 
         // Eğer uzakta çalışan bir sayaç varsa bu ekranda da aç
@@ -296,25 +377,26 @@ class MomentumApp {
   applyRemoteData(data) {
     let shouldRender = false;
 
-    // Seanslar güncellendiyse
+    // Seansları güvenli birleştir (asla yereldeki yeni seansları silme!)
     if (Array.isArray(data.sessions)) {
-      this.sessions = data.sessions;
+      this.sessions = this.mergeSessions(this.sessions || [], data.sessions);
       localStorage.setItem('momentum_sessions', JSON.stringify(this.sessions));
-      shouldRender = true;
-    }
-
-    // Kategoriler ve alt başlıklar güncellendiyse
-    if (data.items && Object.keys(data.items).length > 0) {
-      this.items = data.items;
-      localStorage.setItem('momentum_items', JSON.stringify(this.items));
       shouldRender = true;
     }
 
     // Görevler (To-Do) güncellendiyse
     if (Array.isArray(data.todos)) {
-      this.todos = data.todos;
+      this.todos = this.mergeTodos(this.todos || [], data.todos);
       localStorage.setItem('momentum_todos', JSON.stringify(this.todos));
-      this.updateTodosBadge();
+      if (this.updateTodosBadge) this.updateTodosBadge();
+      shouldRender = true;
+    }
+
+    // Kategoriler ve alt başlıklar güncellendiyse
+    if (data.items && Object.keys(data.items).length > 0) {
+      this.items = this.mergeItems(this.items || {}, data.items);
+      this.recalculateStatsFromSessions();
+      localStorage.setItem('momentum_items', JSON.stringify(this.items));
       shouldRender = true;
     }
 
@@ -323,7 +405,6 @@ class MomentumApp {
       if (data.timer.active && !this.timer.isRunning) {
         this.syncRemoteTimer(data.timer);
       } else if (!data.timer.active && this.timer.isRunning) {
-        // Uzak cihaz seansı bitirdi veya kapattı
         this.closeFocusOverlaySilently();
         shouldRender = true;
       }
