@@ -1117,6 +1117,10 @@ class MomentumApp {
     this.focusOverlay.classList.add('active');
     this.playTone(520, 0.15); // Başlangıç zili
 
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     this.startTimerInterval();
     this.pushTimerStateToServer(true);
   }
@@ -1280,12 +1284,63 @@ class MomentumApp {
     // Başarı Sesi Çal
     this.playCelebrationMelody();
 
+    // 1. Tarayıcıyı ve Sekmeyi Öne Getir (macOS Sistem Seviyesinde)
+    this.bringTabToFront();
+
+    // 2. Masaüstü Bildirimi Göster
+    this.showDesktopNotification(item, duration);
+
     // Sayacı Kapat & Kutlamayı Başlat
     this.closeFocusOverlay();
     this.triggerCelebration(sessionRecord);
 
     // Görünümleri Güncelle
     this.render();
+  }
+
+  bringTabToFront() {
+    // Tarayıcı içi pencere odaklama
+    try {
+      window.focus();
+    } catch (e) {}
+
+    // Arka plan Python sunucusuna işletim sistemi seviyesinde sekme ve tarayıcıyı öne getirme emri ver
+    if (this.syncState && this.syncState.baseUrl) {
+      fetch(`${this.syncState.baseUrl}/api/focus-tab?pin=${encodeURIComponent(this.syncState.pin)}`, { cache: 'no-store' })
+        .catch(err => console.warn('[Focus] API hatası:', err));
+    }
+  }
+
+  showDesktopNotification(item, duration) {
+    if (!('Notification' in window)) return;
+
+    const title = `🎉 Seans Tamamlandı! (${duration} dk)`;
+    const body = `${item ? (item.emoji + ' ' + item.title) : 'Odaklanma seansın'} başarıyla bitti. Görmek için tıkla!`;
+
+    if (Notification.permission === 'granted') {
+      try {
+        const notif = new Notification(title, {
+          body: body,
+          icon: 'icon.svg',
+          requireInteraction: true
+        });
+        notif.onclick = () => {
+          window.focus();
+          this.bringTabToFront();
+          notif.close();
+        };
+      } catch (e) {
+        console.warn('Bildirim hatası:', e);
+      }
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          try {
+            new Notification(title, { body: body, icon: 'icon.svg' });
+          } catch (e) {}
+        }
+      });
+    }
   }
 
   closeFocusOverlay() {

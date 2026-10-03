@@ -18,6 +18,56 @@ DB_FILE = os.path.join(BASE_DIR, "momentum_data.json")
 DEFAULT_PIN = "2026"
 
 import threading
+import subprocess
+
+def focus_momentum_tab():
+    """Seans bittiğinde kullanıcının açık olan Momentum sekmesini ve tarayıcısını tüm uygulamaların önüne getirir."""
+    script = '''
+    tell application "System Events"
+        set appList to name of every process
+    end tell
+
+    set browserList to {"Brave Browser", "Google Chrome", "Safari"}
+    repeat with bName in browserList
+        if appList contains bName then
+            if bName is "Safari" then
+                tell application "Safari"
+                    activate
+                    repeat with w in windows
+                        set tabIdx to 0
+                        repeat with t in tabs of w
+                            set tabIdx to tabIdx + 1
+                            if URL of t contains "localhost:8080" or URL of t contains "my%20system/index.html" then
+                                set current tab of w to t
+                                set index of w to 1
+                                return
+                            end if
+                        end repeat
+                    end repeat
+                end tell
+            else
+                tell application bName
+                    activate
+                    repeat with w in windows
+                        set tabIdx to 0
+                        repeat with t in tabs of w
+                            set tabIdx to tabIdx + 1
+                            if URL of t contains "localhost:8080" or URL of t contains "my%20system/index.html" then
+                                set active tab index of w to tabIdx
+                                set index of w to 1
+                                return
+                            end if
+                        end repeat
+                    end repeat
+                end tell
+            end if
+        end if
+    end repeat
+    '''
+    try:
+        subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=5)
+    except Exception as e:
+        print(f"[!] focus_momentum_tab hatası: {e}")
 
 # Dosya koruma listesi (Ağdaki cihazların indirmesi engellenen dosyalar)
 BLOCKED_EXTENSIONS = {'.command', '.sh', '.py', '.git', '.log'}
@@ -33,13 +83,14 @@ class MomentumSyncServer:
 
     def create_backup(self):
         try:
+            # 1. Proje içindeki backups klasörü (son 30 kopya)
             backup_dir = os.path.join(BASE_DIR, "backups")
             os.makedirs(backup_dir, exist_ok=True)
             ts = time.strftime("%Y%m%d_%H%M%S")
             backup_path = os.path.join(backup_dir, f"momentum_data_{ts}.json")
             with open(backup_path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
-            # En fazla 30 dosya tut, eskileri sil
+
             all_backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("momentum_data_") and f.endswith(".json")])
             if len(all_backups) > 30:
                 for old_f in all_backups[:-30]:
@@ -47,6 +98,25 @@ class MomentumSyncServer:
                         os.remove(os.path.join(backup_dir, old_f))
                     except:
                         pass
+
+            # 2. Kullanıcının ~/Documents/Momentum_Yedekleri klasörü (Harici yerel güvenlik)
+            docs_backup_dir = os.path.expanduser("~/Documents/Momentum_Yedekleri")
+            os.makedirs(docs_backup_dir, exist_ok=True)
+            docs_latest = os.path.join(docs_backup_dir, "momentum_data_latest.json")
+            with open(docs_latest, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+
+            # 3. Varsa iCloud Drive bulut klasörü (Bulut güvenliği)
+            icloud_root = os.path.expanduser("~/Library/Mobile Documents/com~apple~CloudDocs")
+            if os.path.exists(icloud_root):
+                try:
+                    icloud_dir = os.path.join(icloud_root, "Momentum_Yedekleri")
+                    os.makedirs(icloud_dir, exist_ok=True)
+                    icloud_latest = os.path.join(icloud_dir, "momentum_data_latest.json")
+                    with open(icloud_latest, 'w', encoding='utf-8') as f:
+                        json.dump(self.data, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
         except Exception as e:
             print(f"[!] Yedekleme uyarısı: {e}")
 
@@ -168,6 +238,40 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
             else:
                 resp = {"updated": False, "lastUpdated": last_up}
             self.wfile.write(json.dumps(resp, ensure_ascii=False).encode('utf-8'))
+            return
+
+        # 3. API: Manuel Güvenlik Yedeğini İndir
+        if path == "/api/backup/download":
+            if not self.check_pin(query):
+                self.send_response(401)
+                self.send_cors_headers()
+                self.end_headers()
+                return
+
+            self.send_response(200)
+            self.send_cors_headers()
+            ts = time.strftime("%Y%m%d_%H%M")
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="momentum_backup_{ts}.json"')
+            self.end_headers()
+            self.wfile.write(json.dumps(sync_service.data, ensure_ascii=False, indent=2).encode('utf-8'))
+            return
+
+        # 4. API: Seans Bittiğinde Sekmeyi Ön Plana Getir (Focus Tab)
+        if path == "/api/focus-tab":
+            if not self.check_pin(query):
+                self.send_response(401)
+                self.send_cors_headers()
+                self.end_headers()
+                return
+
+            threading.Thread(target=focus_momentum_tab, daemon=True).start()
+
+            self.send_response(200)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True}).encode('utf-8'))
             return
 
         # 3. Güvenlik Filtresi: Hassas dosyalara doğrudan erişimi engelle
