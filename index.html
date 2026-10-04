@@ -303,6 +303,54 @@
           </div>
         </div>
 
+        <!-- MOMENTUM AKTİVİTE & ODAK ISI HARİTASI (GITHUB TARZI HEATMAP) -->
+        <div class="heatmap-card">
+          <div class="heatmap-head">
+            <div class="heatmap-title-wrap">
+              <div class="heatmap-head-tag">📊 Aktivite & Odak Haritası</div>
+              <h3>Dönemsel Odak Isı Haritası</h3>
+              <p>Hangi günlerde ne kadar derin odaklandın? Her kare bir günü temsil eder (Koyu: Dinlenme, Açık/Yeşil/Mavi: Yüksek Odak).</p>
+            </div>
+            <div class="heatmap-stats-pill">
+              <div class="h-stat-mini"><span class="h-stat-num" id="hm-active-days">0</span> <span class="h-stat-lbl">Gün Aktif</span></div>
+              <div class="h-stat-divider"></div>
+              <div class="h-stat-mini"><span class="h-stat-num" id="hm-max-day">0 dk</span> <span class="h-stat-lbl">En Yoğun Gün</span></div>
+              <div class="h-stat-divider"></div>
+              <div class="h-stat-mini"><span class="h-stat-num" id="hm-total-sessions">0</span> <span class="h-stat-lbl">Toplam Seans</span></div>
+            </div>
+          </div>
+
+          <div class="heatmap-scroll-wrapper">
+            <div class="heatmap-months-labels" id="heatmap-months-labels">
+              <!-- JS ile dinamik ay etiketleri -->
+            </div>
+            <div class="heatmap-grid-container">
+              <div class="heatmap-weekdays-labels">
+                <span>Pzt</span>
+                <span>Çar</span>
+                <span>Cum</span>
+                <span>Paz</span>
+              </div>
+              <div class="heatmap-grid" id="heatmap-grid">
+                <!-- JS ile 7x26 hafta günleri oluşturulacak -->
+              </div>
+            </div>
+          </div>
+
+          <div class="heatmap-footer">
+            <div class="heatmap-legend">
+              <span>Daha az</span>
+              <span class="hm-cell lvl-0" title="0 dk"></span>
+              <span class="hm-cell lvl-1" title="1-29 dk"></span>
+              <span class="hm-cell lvl-2" title="30-59 dk"></span>
+              <span class="hm-cell lvl-3" title="60-119 dk"></span>
+              <span class="hm-cell lvl-4" title="120+ dk"></span>
+              <span>Daha çok</span>
+            </div>
+            <div class="heatmap-tooltip-note" id="heatmap-tooltip-text">Detay görmek için bir güne tıkla veya üzerine gel</div>
+          </div>
+        </div>
+
         <!-- KATEGORİ & ALT BAŞLIK BAZLI SEVİYE SİSTEMİ (PROFİL) -->
         <div class="subcat-levels-card">
           <div class="subcat-levels-head">
@@ -323,6 +371,89 @@
           <!-- Alt Başlık Seviye Kartları Grid -->
           <div class="subcat-levels-grid" id="subcat-levels-grid">
             <!-- JS ile dinamik olarak doldurulacak -->
+          </div>
+        </div>
+
+        <!-- VERİ YÖNETİMİ, YEDEKLEME & DIŞA AKTARMA KARTI -->
+        <div class="backup-management-card">
+          <div class="backup-head-info">
+            <div class="backup-head-tag">💾 Veri & Güvenlik</div>
+            <h3>Veri Yönetimi, Güvenli Yedekleme ve Dışa Aktarma</h3>
+            <p>Sistemindeki tüm odaklanma verilerini, alt başlıkları ve görevlerini güvenle yedekleyebilir veya Excel/Numbers uyumlu CSV tablosu olarak indirebilirsin.</p>
+          </div>
+
+          <div class="backup-actions-grid">
+            <!-- 1. JSON Yedeği İndir -->
+            <div class="backup-action-tile">
+              <div class="tile-icon-box blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="tile-details">
+                <h4>Sistem JSON Yedeği</h4>
+                <p>Tüm seanslar, alt başlıklar, to-do'lar ve seviyeleri içeren eksiksiz sistem yedeği.</p>
+              </div>
+              <button type="button" class="backup-btn" id="btn-download-json-backup">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>JSON İndir</span>
+              </button>
+            </div>
+
+            <!-- 2. CSV / Excel Dışa Aktar -->
+            <div class="backup-action-tile">
+              <div class="tile-icon-box green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              <div class="tile-details">
+                <h4>Excel / CSV Tablosu</h4>
+                <p>Tüm seans geçmişini tarih, kategori, aktivite ve dakika bazında Excel & Numbers uyumlu tabloya aktar.</p>
+              </div>
+              <button type="button" class="backup-btn" id="btn-export-csv">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="8 17 12 21 16 17"/>
+                  <line x1="12" y1="12" x2="12" y2="21"/>
+                  <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
+                </svg>
+                <span>CSV Tablosu İndir</span>
+              </button>
+            </div>
+
+            <!-- 3. Yedekten Geri Yükle -->
+            <div class="backup-action-tile">
+              <div class="tile-icon-box amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div class="tile-details">
+                <h4>Yedekten Geri Yükle</h4>
+                <p>Daha önce indirdiğin bir <code>.json</code> yedek dosyasını seçerek sistemini anında geri getir.</p>
+              </div>
+              <label class="backup-btn amber-btn" for="input-restore-file">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>Yedek Dosyası Seç</span>
+                <input type="file" id="input-restore-file" accept=".json" style="display: none;">
+              </label>
+            </div>
           </div>
         </div>
       </section>
@@ -524,6 +655,12 @@
           <span class="focus-mode-badge" id="timer-mode-badge">Orta (30 dk)</span>
         </div>
 
+        <div class="focus-todo-tag hidden" id="timer-todo-tag" title="Şu an bu görev üzerinde odaklanıyorsun">
+          <span class="focus-todo-icon">🎯</span>
+          <span class="focus-todo-label">Görev:</span>
+          <span class="focus-todo-text" id="timer-todo-text">Görev metni</span>
+        </div>
+
         <div class="focus-top-actions">
           <button class="sound-toggle-btn" id="btn-ambient-sound" title="Odaklanma Sesi (Beyaz Gürültü / Zen Dalga)">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -612,6 +749,18 @@
           </div>
         </div>
 
+        <!-- İLİŞKİLİ GÖREV TAMAMLAMA AKSİYONU -->
+        <div class="celeb-todo-card hidden" id="celeb-todo-card">
+          <div class="celeb-todo-info">
+            <span class="celeb-todo-badge">🎯 Odaklanılan Görev</span>
+            <span class="celeb-todo-title" id="celeb-todo-title">Görev Adı</span>
+          </div>
+          <button type="button" class="celeb-todo-btn" id="btn-celeb-complete-todo">
+            <span id="celeb-todo-btn-icon">✅</span>
+            <span id="celeb-todo-btn-text">Görevi "Tamamlandı" Yap</span>
+          </button>
+        </div>
+
         <button class="primary-btn wide" id="btn-close-celebration">
           <span>Harika, Devam Et</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -620,6 +769,9 @@
         </button>
       </div>
     </div>
+
+    <!-- EVRENSEL BİLDİRİM TOASTI -->
+    <div id="toast-notification" class="toast-notification"></div>
 
   </div>
 

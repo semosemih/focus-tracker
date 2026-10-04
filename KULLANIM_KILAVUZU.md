@@ -70,7 +70,21 @@ MacBook'unuzda yerel (offline) olarak çalışan, hiçbir internet bağlantısı
 
 7. **İlerleme & Seviye**:
    - Toplam odaklanma saatiniz, kesintisiz devam seriniz (Streak 🔥) ve kategori dağılım yüzdeleriniz hesaplanır.
-   - Ne kadar çok seans tamamlarsanız seviyeniz ve rozetleriniz o kadar yükselir!
+   - Ne kadar çok seans tamamlarsanız seviyeniz ve unvanlarınız o kadar yükselir.
+
+8. **📊 Dönemsel Odak Isı Haritası (Momentum Heatmap)**:
+   - Profil sekmesinde, GitHub tarzı son 6 ayın tüm günlerini kapsayan neon/titanyum matris.
+   - Hangi gün kaç dakika çalıştığınızı, kaç seans bitirdiğinizi tek bakışta görebilir, günlerin üzerine gelip tıklayarak detaylı özetleri inceleyebilirsiniz.
+
+9. **🎯 Görevlerim (To-Do) ile Canlı Sayaç Entegrasyonu**:
+   - Görevler listesindeki herhangi bir görevin yanındaki `⏱️ Odaklan` butonuna basarak doğrudan sayacı başlatabilirsiniz.
+   - Odaklanma ekranında hangi görev üzerinde çalıştığınız canlı olarak gösterilir.
+   - Seans bittiğinde kutlama ekranında tek tıkla *"Görevi 'Tamamlandı' Yap"* seçeneği çıkar.
+
+10. **💾 Güvenli JSON Yedekleme & Excel / CSV Dışa Aktarma**:
+   - Profil sekmesinin altından tek tıkla sisteminizin tam **JSON yedeğini** indirebilir veya önceden aldığınız bir yedeği sisteme geri yükleyebilirsiniz.
+   - **Excel / CSV İndir** butonuyla tüm seans geçmişinizi tarih, kategori, süre ve görev detaylarıyla Excel/Numbers uyumlu tablo olarak dışa aktarabilirsiniz.
 
 ---
-*Tüm veriler MacBook'unuzun yerel hafızasında (`localStorage`) saklanır, hiçbir yere gönderilmez ve silinmez.*
+*Tüm veriler MacBook'unuzun yerel hafızasında (`momentum_data.json` & `localStorage`) saklanır, hiçbir harici sunucuya gönderilmez.*
+

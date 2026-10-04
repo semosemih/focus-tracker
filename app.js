@@ -81,6 +81,7 @@ class MomentumApp {
     // Zamanlayıcı durumu
     this.timer = {
       activeItem: null,
+      activeTodo: null,
       durationMinutes: 30,
       totalSeconds: 30 * 60,
       remainingSeconds: 30 * 60,
@@ -643,6 +644,29 @@ class MomentumApp {
     this.progYaraticilikBar = document.getElementById('prog-yaraticilik-bar');
     this.sessionRatioPills = document.getElementById('session-ratio-pills');
 
+    // Isı Haritası (Heatmap) DOM
+    this.heatmapGrid = document.getElementById('heatmap-grid');
+    this.heatmapMonthsLabels = document.getElementById('heatmap-months-labels');
+    this.hmActiveDays = document.getElementById('hm-active-days');
+    this.hmMaxDay = document.getElementById('hm-max-day');
+    this.hmTotalSessions = document.getElementById('hm-total-sessions');
+    this.heatmapTooltipText = document.getElementById('heatmap-tooltip-text');
+
+    // Veri Yönetimi & Yedekleme DOM
+    this.btnDownloadJsonBackup = document.getElementById('btn-download-json-backup');
+    this.btnExportCsv = document.getElementById('btn-export-csv');
+    this.inputRestoreFile = document.getElementById('input-restore-file');
+
+    // To-Do & Sayaç Entegrasyonu DOM
+    this.timerTodoTag = document.getElementById('timer-todo-tag');
+    this.timerTodoText = document.getElementById('timer-todo-text');
+    this.celebTodoCard = document.getElementById('celeb-todo-card');
+    this.celebTodoTitle = document.getElementById('celeb-todo-title');
+    this.btnCelebCompleteTodo = document.getElementById('btn-celeb-complete-todo');
+
+    // Evrensel Bildirim Toastı
+    this.toastEl = document.getElementById('toast-notification');
+
     this.renderPickers();
   }
 
@@ -753,6 +777,22 @@ class MomentumApp {
         }
       }
     });
+
+    // Veri Yönetimi Butonları
+    if (this.btnDownloadJsonBackup) {
+      this.btnDownloadJsonBackup.addEventListener('click', () => this.downloadJsonBackup());
+    }
+    if (this.btnExportCsv) {
+      this.btnExportCsv.addEventListener('click', () => this.exportSessionsToCsv());
+    }
+    if (this.inputRestoreFile) {
+      this.inputRestoreFile.addEventListener('change', (e) => this.handleRestoreFile(e));
+    }
+
+    // Kutlama Modalı: Görev Tamamlama Butonu
+    if (this.btnCelebCompleteTodo) {
+      this.btnCelebCompleteTodo.addEventListener('click', () => this.completeActiveTodoFromCelebration());
+    }
   }
 
   // ==========================================
@@ -1073,9 +1113,17 @@ class MomentumApp {
   // ==========================================
   // 8. SÜRE SEÇİMİ (KISA: 15, ORTA: 30, UZUN: 45)
   // ==========================================
-  openDurationModal(item) {
+  openDurationModal(item, todo = null) {
     this.timer.activeItem = item;
-    this.modalItemTitle.textContent = item.title;
+    this.timer.activeTodo = todo;
+
+    if (todo && todo.text) {
+      const shortText = todo.text.length > 24 ? todo.text.substring(0, 21) + '...' : todo.text;
+      this.modalItemTitle.textContent = `${item.title} • 🎯 ${shortText}`;
+    } else {
+      this.modalItemTitle.textContent = item.title;
+    }
+
     this.modalItemIcon.textContent = item.emoji || '⚡';
     this.modalItemColorPill.style.backgroundColor = `${item.color}22` || 'rgba(255,255,255,0.08)';
     this.modalItemColorPill.style.color = item.color || '#ffffff';
@@ -1104,6 +1152,14 @@ class MomentumApp {
 
     const modeLabels = { 15: 'Kısa (15 dk)', 30: 'Orta (30 dk)', 45: 'Uzun (45 dk)' };
     this.timerModeBadge.textContent = modeLabels[minutes] || `${minutes} dk`;
+
+    // To-Do ilişkilendirmesi varsa göster
+    if (this.timer.activeTodo && this.timer.activeTodo.text) {
+      if (this.timerTodoTag) this.timerTodoTag.classList.remove('hidden');
+      if (this.timerTodoText) this.timerTodoText.textContent = this.timer.activeTodo.text;
+    } else {
+      if (this.timerTodoTag) this.timerTodoTag.classList.add('hidden');
+    }
 
     // Renk ayarı
     this.timerCircleProgress.style.stroke = item.color || '#6366f1';
@@ -1266,6 +1322,11 @@ class MomentumApp {
       timestamp: Date.now(),
       dateStr: this.formatDateIso(new Date()) // YYYY-MM-DD
     };
+
+    if (this.timer.activeTodo) {
+      sessionRecord.todoId = this.timer.activeTodo.id;
+      sessionRecord.todoText = this.timer.activeTodo.text;
+    }
 
     this.sessions.push(sessionRecord);
     this.saveSessions();
@@ -1520,6 +1581,22 @@ class MomentumApp {
       quote = `🏆 TEBRİKLER! Bugün Spor, Ders ve Yaratıcılık seanslarının 3'ünü de tamamlayarak serini (${streak} Gün 🔥) başarıyla kilitledin!`;
     }
     this.celebQuote.textContent = `"${quote}"`;
+
+    // İlişkili To-Do Tamamlama Kutusu
+    if (this.timer.activeTodo && !this.timer.activeTodo.completed) {
+      if (this.celebTodoCard) this.celebTodoCard.classList.remove('hidden');
+      if (this.celebTodoTitle) this.celebTodoTitle.textContent = this.timer.activeTodo.text;
+      if (this.btnCelebCompleteTodo) {
+        this.btnCelebCompleteTodo.classList.remove('completed-done');
+        this.btnCelebCompleteTodo.disabled = false;
+        const icon = document.getElementById('celeb-todo-btn-icon');
+        const text = document.getElementById('celeb-todo-btn-text');
+        if (icon) icon.textContent = '✅';
+        if (text) text.textContent = 'Görevi "Tamamlandı" Yap';
+      }
+    } else {
+      if (this.celebTodoCard) this.celebTodoCard.classList.add('hidden');
+    }
 
     this.celebrationOverlay.classList.add('active');
     this.launchConfetti();
@@ -1930,6 +2007,9 @@ class MomentumApp {
 
     // Alt Başlık Bazlı Seviye & Profil Tablosunu Çiz
     this.renderSubcategoryLevels();
+
+    // Momentum Aktivite Isı Haritasını Çiz
+    this.renderHeatmap();
   }
 
   // ==========================================
@@ -2185,6 +2265,319 @@ class MomentumApp {
   }
 
   // ==========================================
+  // 14.5 MOMENTUM AKTİVİTE & ODAK ISI HARİTASI (HEATMAP)
+  // ==========================================
+  renderHeatmap() {
+    if (!this.heatmapGrid) return;
+    this.heatmapGrid.innerHTML = '';
+    if (this.heatmapMonthsLabels) this.heatmapMonthsLabels.innerHTML = '';
+
+    const today = new Date();
+    const todayStr = this.formatDateIso(today);
+
+    // Günlük harita oluştur: dateStr -> { minutes: 0, count: 0, items: [] }
+    const dayMap = {};
+    let totalPeriodSessions = 0;
+    let maxDayMins = 0;
+    let activeDaysCount = 0;
+
+    this.sessions.forEach(s => {
+      if (!s.dateStr) return;
+      if (!dayMap[s.dateStr]) {
+        dayMap[s.dateStr] = { minutes: 0, count: 0, items: [] };
+      }
+      dayMap[s.dateStr].minutes += (s.minutes || 0);
+      dayMap[s.dateStr].count += 1;
+      if (s.itemTitle && !dayMap[s.dateStr].items.includes(s.itemTitle)) {
+        dayMap[s.dateStr].items.push(s.itemTitle);
+      }
+    });
+
+    // 26 hafta (yaklaşık 6 ay) x 7 gün = 182 gün
+    const totalWeeks = 26;
+    const currentDayOfWeek = (today.getDay() + 6) % 7; // 0: Pzt, ..., 6: Paz
+
+    // Grid'in son günü: bu haftanın Pazarı
+    const endGridDate = new Date(today);
+    endGridDate.setDate(today.getDate() + (6 - currentDayOfWeek));
+
+    // Başlangıç tarihi: endGridDate'den (26 * 7 - 1) gün öncesi
+    const startGridDate = new Date(endGridDate);
+    startGridDate.setDate(endGridDate.getDate() - (totalWeeks * 7 - 1));
+
+    const monthNamesTr = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    let lastMonth = -1;
+    const monthOffsets = [];
+
+    const days = [];
+    let curr = new Date(startGridDate);
+
+    for (let w = 0; w < totalWeeks; w++) {
+      const weekMonday = new Date(curr);
+      const mIdx = weekMonday.getMonth();
+      if (mIdx !== lastMonth) {
+        monthOffsets.push({ name: monthNamesTr[mIdx], weekIdx: w });
+        lastMonth = mIdx;
+      }
+
+      for (let d = 0; d < 7; d++) {
+        const dStr = this.formatDateIso(curr);
+        const isFuture = curr > today;
+        const info = dayMap[dStr] || { minutes: 0, count: 0, items: [] };
+
+        if (!isFuture) {
+          if (info.minutes > 0) activeDaysCount++;
+          if (info.minutes > maxDayMins) maxDayMins = info.minutes;
+          totalPeriodSessions += info.count;
+        }
+
+        days.push({
+          dateStr: dStr,
+          dateObj: new Date(curr),
+          isFuture,
+          info,
+          isToday: dStr === todayStr
+        });
+
+        curr.setDate(curr.getDate() + 1);
+      }
+    }
+
+    // İstatistik özetini güncelle
+    if (this.hmActiveDays) this.hmActiveDays.textContent = activeDaysCount;
+    if (this.hmMaxDay) this.hmMaxDay.textContent = this.formatMinutesToHuman(maxDayMins);
+    if (this.hmTotalSessions) this.hmTotalSessions.textContent = totalPeriodSessions;
+
+    // Ay başlıklarını yerleştir (Her hafta sütunu: 13px + 4px gap = 17px)
+    if (this.heatmapMonthsLabels) {
+      this.heatmapMonthsLabels.innerHTML = '';
+      monthOffsets.forEach(mo => {
+        const span = document.createElement('span');
+        span.textContent = mo.name;
+        span.style.position = 'absolute';
+        span.style.left = `${32 + (mo.weekIdx * 17)}px`;
+        this.heatmapMonthsLabels.appendChild(span);
+      });
+    }
+
+    // Isı haritası hücrelerini oluştur
+    days.forEach(item => {
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+
+      if (item.isFuture) {
+        cell.style.opacity = '0.15';
+        cell.style.pointerEvents = 'none';
+        cell.classList.add('lvl-0');
+      } else {
+        const mins = item.info.minutes;
+        if (mins === 0) {
+          cell.classList.add('lvl-0');
+        } else if (mins < 30) {
+          cell.classList.add('lvl-1');
+        } else if (mins < 60) {
+          cell.classList.add('lvl-2');
+        } else if (mins < 120) {
+          cell.classList.add('lvl-3');
+        } else {
+          cell.classList.add('lvl-4');
+        }
+
+        if (item.isToday) {
+          cell.style.borderColor = 'rgba(255, 255, 255, 0.85)';
+        }
+
+        const parts = item.dateStr.split('-');
+        const dateFormatted = `${parseInt(parts[2], 10)} ${monthNamesTr[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+        const itemHint = item.info.items.length > 0 ? ` (${item.info.items.slice(0, 3).join(', ')})` : '';
+        const descText = mins > 0
+          ? `📅 ${dateFormatted}: ${this.formatMinutesToHuman(mins)} odaklanma (${item.info.count} seans)${itemHint}`
+          : `📅 ${dateFormatted}: Odak seansı bulunmuyor`;
+
+        cell.setAttribute('title', descText);
+
+        const updateNote = () => {
+          if (this.heatmapTooltipText) {
+            this.heatmapTooltipText.textContent = descText;
+            this.heatmapTooltipText.style.color = mins > 0 ? 'var(--color-spor)' : 'var(--text-muted)';
+          }
+        };
+
+        cell.addEventListener('mouseenter', updateNote);
+        cell.addEventListener('click', () => {
+          updateNote();
+          document.querySelectorAll('.hm-cell.active-selected').forEach(c => c.classList.remove('active-selected'));
+          cell.classList.add('active-selected');
+        });
+      }
+
+      this.heatmapGrid.appendChild(cell);
+    });
+  }
+
+  // ==========================================
+  // 14.6 VERİ YÖNETİMİ, YEDEKLEME & CSV DIŞA AKTARMA
+  // ==========================================
+  showToast(msg, duration = 3500) {
+    if (!this.toastEl) return;
+    this.toastEl.textContent = msg;
+    this.toastEl.classList.add('active');
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      this.toastEl.classList.remove('active');
+    }, duration);
+  }
+
+  downloadJsonBackup() {
+    try {
+      const backupData = {
+        items: this.items,
+        sessions: this.sessions,
+        todos: this.todos,
+        exportedAt: new Date().toISOString(),
+        version: "2.0",
+        system: "MOMENTUM Focus & Habit System"
+      };
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const todayStr = this.formatDateIso(new Date());
+      a.href = url;
+      a.download = `momentum_backup_${todayStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast("💾 Sistem JSON yedeği başarıyla indirildi!");
+    } catch (e) {
+      console.error(e);
+      alert("Yedek indirilirken hata oluştu: " + e.message);
+    }
+  }
+
+  exportSessionsToCsv() {
+    try {
+      if (!this.sessions || this.sessions.length === 0) {
+        alert("Henüz kaydedilmiş bir seans geçmişi bulunmuyor.");
+        return;
+      }
+
+      const categoryLabels = {
+        spor: "Spor",
+        ders: "Ders",
+        yaraticilik: "Yaratıcılık"
+      };
+
+      // UTF-8 BOM ekliyoruz (Excel ve Numbers Türkçe harfleri düzgün açsın)
+      let csv = "\uFEFF";
+      csv += "Tarih;Saat;Kategori;Alt Başlık / Aktivite;Süre (Dk);Formatlı Süre;İlişkili Görev;Kayıt ID\n";
+
+      // En yeni seanslar en üstte
+      const sorted = [...this.sessions].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      sorted.forEach(s => {
+        const d = new Date(s.timestamp || Date.now());
+        const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        const catName = categoryLabels[s.category] || s.category || "";
+        const titleName = (s.itemTitle || "").replace(/;/g, ',');
+        const mins = s.minutes || 0;
+        const formatted = this.formatMinutesToHuman(mins).replace(/;/g, ',');
+        const todoText = (s.todoText || "").replace(/;/g, ',');
+        const id = s.id || "";
+
+        csv += `"${s.dateStr || ''}";"${timeStr}";"${catName}";"${titleName}";${mins};"${formatted}";"${todoText}";"${id}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const todayStr = this.formatDateIso(new Date());
+      a.href = url;
+      a.download = `momentum_seanslar_${todayStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast("📊 Excel & CSV seans tablosu başarıyla indirildi!");
+    } catch (e) {
+      console.error(e);
+      alert("CSV tablosu oluşturulurken hata oluştu: " + e.message);
+    }
+  }
+
+  handleRestoreFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = JSON.parse(e.target.result);
+        if (!content || typeof content !== 'object') {
+          throw new Error("Geçersiz veya bozuk JSON dosyası.");
+        }
+
+        const sessCount = Array.isArray(content.sessions) ? content.sessions.length : 0;
+        const todoCount = Array.isArray(content.todos) ? content.todos.length : 0;
+        const hasItems = content.items && typeof content.items === 'object';
+
+        if (!sessCount && !todoCount && !hasItems) {
+          throw new Error("Bu yedek dosyasında geçerli Momentum verisi (seanslar, görevler veya alt başlıklar) bulunamadı.");
+        }
+
+        const confirmMsg = `Yedek dosyası başarıyla analiz edildi:\n\n• ${sessCount} adet seans kaydı\n• ${todoCount} adet görev\n• ${hasItems ? 'Özel alt başlıklar' : 'Mevcut alt başlıklar'}\n\nMevcut verilerin üzerine bu yedek yüklenecek. Onaylıyor musun?`;
+        if (!confirm(confirmMsg)) {
+          event.target.value = '';
+          return;
+        }
+
+        if (content.items) this.items = content.items;
+        if (Array.isArray(content.sessions)) this.sessions = content.sessions;
+        if (Array.isArray(content.todos)) this.todos = content.todos;
+
+        this.saveItems();
+        this.saveSessions();
+        this.saveTodos();
+        await this.pushFullStateToServer();
+
+        this.render();
+        this.showToast("✅ Yedek başarıyla geri yüklendi!");
+      } catch (err) {
+        console.error(err);
+        alert("Yedek geri yüklenirken hata oluştu: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  // Kutlama Ekranından Görevi Tamamlama
+  completeActiveTodoFromCelebration() {
+    if (!this.timer.activeTodo) return;
+    const todo = this.todos.find(t => t.id === this.timer.activeTodo.id);
+    if (todo) {
+      todo.completed = true;
+      todo.completedAt = Date.now();
+      this.saveTodos();
+      this.renderTodos();
+    }
+
+    if (this.btnCelebCompleteTodo) {
+      this.btnCelebCompleteTodo.classList.add('completed-done');
+      this.btnCelebCompleteTodo.disabled = true;
+      const icon = document.getElementById('celeb-todo-btn-icon');
+      const text = document.getElementById('celeb-todo-btn-text');
+      if (icon) icon.textContent = '🎉';
+      if (text) text.textContent = '✓ Görev Tamamlandı!';
+    }
+
+    this.playTone(650, 0.25);
+    this.showToast("🎯 Görev başarıyla 'Tamamlandı' olarak işaretlendi!");
+  }
+
+  // ==========================================
   // 15. GÖREVLERİM (TO-DO LİSTESİ) METODLARI
   // ==========================================
   populateTodoItemSelect() {
@@ -2351,17 +2744,14 @@ class MomentumApp {
       const d = new Date(todo.createdAt || Date.now());
       const dateText = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 
-      // Odaklanma butonu
-      let focusBtnHtml = '';
-      if (todo.itemId) {
-        focusBtnHtml = `
-          <button type="button" class="todo-act-btn focus-act" title="Bu aktiviteye odaklanarak görevi tamamla">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-          </button>
-        `;
-      }
+      // Odaklanma butonu (Hem ilişkili alt başlığı olan hem de genel görevler için çalışır)
+      const focusBtnHtml = `
+        <button type="button" class="todo-act-btn focus-act" title="Bu göreve odaklanarak seans başlat">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </button>
+      `;
 
       card.innerHTML = `
         <div class="todo-item-left">
@@ -2402,18 +2792,28 @@ class MomentumApp {
       const delBtn = card.querySelector('.delete-act');
       if (delBtn) delBtn.addEventListener('click', () => this.deleteTodo(todo.id));
 
-      // Focus event
+      // Focus event (Görevi canlı sayaç ile başlatma)
       const focusBtn = card.querySelector('.focus-act');
-      if (focusBtn && todo.itemId) {
+      if (focusBtn) {
         focusBtn.addEventListener('click', () => {
           let foundItem = null;
-          for (const cat of ['spor', 'ders', 'yaraticilik']) {
-            const f = this.items[cat]?.find(i => i.id === todo.itemId);
-            if (f) { foundItem = f; break; }
+          if (todo.itemId) {
+            for (const cat of ['spor', 'ders', 'yaraticilik']) {
+              const f = this.items[cat]?.find(i => i.id === todo.itemId);
+              if (f) { foundItem = f; break; }
+            }
           }
-          if (foundItem) {
-            this.openDurationModal(foundItem);
+          if (!foundItem) {
+            // Genel görevler için ders veya ilk aktiviteyi seç
+            foundItem = this.items.ders?.[0] || {
+              id: 'genel-odak',
+              title: 'Genel Odak',
+              emoji: '🎯',
+              category: 'ders',
+              color: '#38bdf8'
+            };
           }
+          this.openDurationModal(foundItem, todo);
         });
       }
 
