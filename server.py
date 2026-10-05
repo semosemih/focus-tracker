@@ -29,7 +29,7 @@ def focus_momentum_tab():
         set appNames to name of every process
     end tell
 
-    -- 1. BRAVE BROWSER
+    -- 1. BRAVE BROWSER (Öncelikli)
     if appNames contains "Brave Browser" then
         try
             tell application "Brave Browser"
@@ -111,78 +111,18 @@ def focus_momentum_tab():
         end try
     end if
 
-    -- 4. MICROSOFT EDGE
-    if appNames contains "Microsoft Edge" then
-        try
-            tell application "Microsoft Edge"
-                repeat with w in windows
-                    set tabIdx to 0
-                    repeat with t in tabs of w
-                        set tabIdx to tabIdx + 1
-                        set u to URL of t
-                        set ttl to title of t
-                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
-                            set active tab index of w to tabIdx
-                            set index of w to 1
-                            activate
-                            set found to true
-                            exit repeat
-                        end if
-                    end repeat
-                    if found then exit repeat
-                end repeat
-            end tell
-            if found then
-                tell application "System Events" to set frontmost of process "Microsoft Edge" to true
-                return "Microsoft Edge"
-            end if
-        end try
-    end if
-
-    -- 5. ARC
-    if appNames contains "Arc" then
-        try
-            tell application "Arc"
-                repeat with w in windows
-                    set tabIdx to 0
-                    repeat with t in tabs of w
-                        set tabIdx to tabIdx + 1
-                        set u to URL of t
-                        set ttl to title of t
-                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
-                            set active tab index of w to tabIdx
-                            set index of w to 1
-                            activate
-                            set found to true
-                            exit repeat
-                        end if
-                    end repeat
-                    if found then exit repeat
-                end repeat
-            end tell
-            if found then
-                tell application "System Events" to set frontmost of process "Arc" to true
-                return "Arc"
-            end if
-        end try
-    end if
-
     return "NOT_FOUND"
     '''
     try:
         res = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=5)
         out = (res.stdout or "").strip()
-        if res.returncode != 0 or out == "NOT_FOUND":
-            print(f"[!] focus_momentum_tab: Sekme bulunamadı veya osascript uyarısı ({out}, err: {res.stderr.strip()}). Sayfa açılıyor...")
-            subprocess.run(["open", f"http://localhost:{PORT}/?pin={DEFAULT_PIN}"], timeout=5)
+        if res.returncode == 0 and out != "NOT_FOUND":
+            print(f"[✓] focus_momentum_tab: Açık Momentum sekmesi ({out}) öne getirildi.")
         else:
-            print(f"[✓] focus_momentum_tab: {out} öne getirildi ve Momentum sekmesi aktif yapıldı.")
+            err = res.stderr.strip() if res.stderr else ""
+            print(f"[-] focus_momentum_tab: Açık sekme arandı ({out}{f', hata: {err}' if err else ''}). Asla yeni sekme açılmıyor.")
     except Exception as e:
         print(f"[!] focus_momentum_tab hatası: {e}")
-        try:
-            subprocess.run(["open", f"http://localhost:{PORT}/?pin={DEFAULT_PIN}"], timeout=5)
-        except:
-            pass
 
 # Dosya koruma listesi (Ağdaki cihazların indirmesi engellenen dosyalar)
 BLOCKED_EXTENSIONS = {'.command', '.sh', '.py', '.git', '.log'}
