@@ -23,51 +23,166 @@ import subprocess
 def focus_momentum_tab():
     """Seans bittiğinde kullanıcının açık olan Momentum sekmesini ve tarayıcısını tüm uygulamaların önüne getirir."""
     script = '''
+    set found to false
+    
     tell application "System Events"
-        set appList to name of every process
+        set appNames to name of every process
     end tell
 
-    set browserList to {"Brave Browser", "Google Chrome", "Safari"}
-    repeat with bName in browserList
-        if appList contains bName then
-            if bName is "Safari" then
-                tell application "Safari"
-                    activate
-                    repeat with w in windows
-                        set tabIdx to 0
-                        repeat with t in tabs of w
-                            set tabIdx to tabIdx + 1
-                            if URL of t contains "localhost:8080" or URL of t contains "my%20system/index.html" then
-                                set current tab of w to t
-                                set index of w to 1
-                                return
-                            end if
-                        end repeat
+    -- 1. BRAVE BROWSER
+    if appNames contains "Brave Browser" then
+        try
+            tell application "Brave Browser"
+                repeat with w in windows
+                    set tabIdx to 0
+                    repeat with t in tabs of w
+                        set tabIdx to tabIdx + 1
+                        set u to URL of t
+                        set ttl to title of t
+                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                            set active tab index of w to tabIdx
+                            set index of w to 1
+                            activate
+                            set found to true
+                            exit repeat
+                        end if
                     end repeat
-                end tell
-            else
-                tell application bName
-                    activate
-                    repeat with w in windows
-                        set tabIdx to 0
-                        repeat with t in tabs of w
-                            set tabIdx to tabIdx + 1
-                            if URL of t contains "localhost:8080" or URL of t contains "my%20system/index.html" then
-                                set active tab index of w to tabIdx
-                                set index of w to 1
-                                return
-                            end if
-                        end repeat
-                    end repeat
-                end tell
+                    if found then exit repeat
+                end repeat
+            end tell
+            if found then
+                tell application "System Events" to set frontmost of process "Brave Browser" to true
+                return "Brave Browser"
             end if
-        end if
-    end repeat
+        end try
+    end if
+
+    -- 2. GOOGLE CHROME
+    if appNames contains "Google Chrome" then
+        try
+            tell application "Google Chrome"
+                repeat with w in windows
+                    set tabIdx to 0
+                    repeat with t in tabs of w
+                        set tabIdx to tabIdx + 1
+                        set u to URL of t
+                        set ttl to title of t
+                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                            set active tab index of w to tabIdx
+                            set index of w to 1
+                            activate
+                            set found to true
+                            exit repeat
+                        end if
+                    end repeat
+                    if found then exit repeat
+                end repeat
+            end tell
+            if found then
+                tell application "System Events" to set frontmost of process "Google Chrome" to true
+                return "Google Chrome"
+            end if
+        end try
+    end if
+
+    -- 3. SAFARI
+    if appNames contains "Safari" then
+        try
+            tell application "Safari"
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to URL of t
+                        set ttl to name of t
+                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                            set current tab of w to t
+                            set index of w to 1
+                            activate
+                            set found to true
+                            exit repeat
+                        end if
+                    end repeat
+                    if found then exit repeat
+                end repeat
+            end tell
+            if found then
+                tell application "System Events" to set frontmost of process "Safari" to true
+                return "Safari"
+            end if
+        end try
+    end if
+
+    -- 4. MICROSOFT EDGE
+    if appNames contains "Microsoft Edge" then
+        try
+            tell application "Microsoft Edge"
+                repeat with w in windows
+                    set tabIdx to 0
+                    repeat with t in tabs of w
+                        set tabIdx to tabIdx + 1
+                        set u to URL of t
+                        set ttl to title of t
+                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                            set active tab index of w to tabIdx
+                            set index of w to 1
+                            activate
+                            set found to true
+                            exit repeat
+                        end if
+                    end repeat
+                    if found then exit repeat
+                end repeat
+            end tell
+            if found then
+                tell application "System Events" to set frontmost of process "Microsoft Edge" to true
+                return "Microsoft Edge"
+            end if
+        end try
+    end if
+
+    -- 5. ARC
+    if appNames contains "Arc" then
+        try
+            tell application "Arc"
+                repeat with w in windows
+                    set tabIdx to 0
+                    repeat with t in tabs of w
+                        set tabIdx to tabIdx + 1
+                        set u to URL of t
+                        set ttl to title of t
+                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                            set active tab index of w to tabIdx
+                            set index of w to 1
+                            activate
+                            set found to true
+                            exit repeat
+                        end if
+                    end repeat
+                    if found then exit repeat
+                end repeat
+            end tell
+            if found then
+                tell application "System Events" to set frontmost of process "Arc" to true
+                return "Arc"
+            end if
+        end try
+    end if
+
+    return "NOT_FOUND"
     '''
     try:
-        subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=5)
+        res = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=5)
+        out = (res.stdout or "").strip()
+        if res.returncode != 0 or out == "NOT_FOUND":
+            print(f"[!] focus_momentum_tab: Sekme bulunamadı veya osascript uyarısı ({out}, err: {res.stderr.strip()}). Sayfa açılıyor...")
+            subprocess.run(["open", f"http://localhost:{PORT}/?pin={DEFAULT_PIN}"], timeout=5)
+        else:
+            print(f"[✓] focus_momentum_tab: {out} öne getirildi ve Momentum sekmesi aktif yapıldı.")
     except Exception as e:
         print(f"[!] focus_momentum_tab hatası: {e}")
+        try:
+            subprocess.run(["open", f"http://localhost:{PORT}/?pin={DEFAULT_PIN}"], timeout=5)
+        except:
+            pass
 
 # Dosya koruma listesi (Ağdaki cihazların indirmesi engellenen dosyalar)
 BLOCKED_EXTENSIONS = {'.command', '.sh', '.py', '.git', '.log'}

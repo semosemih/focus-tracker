@@ -106,10 +106,45 @@ class MomentumApp {
     // Profil Alt Başlık Seviyeleri filtre durumu
     this.subcatLevelFilter = 'all'; // 'all', 'spor', 'ders', 'yaraticilik'
 
+    this.titleFlashInterval = null;
+    this.timerWorker = null;
+    this.initTimerWorker();
+
     this.initDOM();
     this.bindEvents();
     this.render();
     this.initSync();
+  }
+
+  initTimerWorker() {
+    try {
+      const workerCode = `
+        let timerId = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(() => {
+              self.postMessage('tick');
+            }, 500);
+          } else if (e.data === 'stop') {
+            if (timerId) {
+              clearInterval(timerId);
+              timerId = null;
+            }
+          }
+        };
+      `;
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      this.timerWorker = new Worker(URL.createObjectURL(blob));
+      this.timerWorker.onmessage = (e) => {
+        if (e.data === 'tick') {
+          this.syncTimerWithTimestamp();
+        }
+      };
+    } catch (e) {
+      console.warn('[Timer] Web Worker başlatılamadı, fallback zamanlayıcı kullanılacak:', e);
+      this.timerWorker = null;
+    }
   }
 
   // LocalStorage & Eşitleme İşlemleri
@@ -1182,7 +1217,7 @@ class MomentumApp {
   }
 
   // ==========================================
-  // 9. ZAMANLAYICI MOTORU (GERÇEK ZAMANLI TIMESTAMP & WEB AUDIO)
+  // 9. ZAMANLAYICI MOTORU (GERÇEK ZAMANLI TIMESTAMP, WEB WORKER & WEB AUDIO)
   // ==========================================
   startTimerInterval() {
     if (this.timer.intervalId) clearInterval(this.timer.intervalId);
@@ -1199,9 +1234,12 @@ class MomentumApp {
     // İlk senkronizasyonu hemen yap
     this.syncTimerWithTimestamp();
 
-    // 400ms aralıkla gerçek zaman damgasına göre sayacı güncelle.
-    // Tarayıcı sekmeyi arka planda dakikada bire düşürse bile, Date.now() sayesinde
-    // aradan 5 dakika geçtiğinde sayacın da TAM 5 dakika ilerlemesi garanti edilir.
+    // 1. Arka plan Web Worker başlat (Tarayıcı başka sekmedeyken CPU throttling yapmaz, saniyesi saniyesine tetikler)
+    if (this.timerWorker) {
+      this.timerWorker.postMessage('start');
+    }
+
+    // 2. Normal setInterval (ana sayfa aktifken akıcı SVG çember animasyonu için)
     this.timer.intervalId = setInterval(() => {
       this.syncTimerWithTimestamp();
     }, 400);
@@ -1236,6 +1274,9 @@ class MomentumApp {
     if (this.timer.isRunning) {
       // Duraklat: Kalan süreyi kesin olarak hesapla ve hedefi dondur
       clearInterval(this.timer.intervalId);
+      if (this.timerWorker) {
+        this.timerWorker.postMessage('stop');
+      }
       const now = Date.now();
       if (this.timer.targetEndTime) {
         this.timer.remainingSeconds = Math.max(0, Math.ceil((this.timer.targetEndTime - now) / 1000));
@@ -1261,6 +1302,9 @@ class MomentumApp {
 
   resetTimer() {
     clearInterval(this.timer.intervalId);
+    if (this.timerWorker) {
+      this.timerWorker.postMessage('stop');
+    }
     this.timer.isRunning = false;
     this.timer.targetEndTime = null;
     this.timer.remainingSeconds = this.timer.totalSeconds;
@@ -1301,6 +1345,9 @@ class MomentumApp {
 
   finishSessionSuccessfully() {
     clearInterval(this.timer.intervalId);
+    if (this.timerWorker) {
+      this.timerWorker.postMessage('stop');
+    }
     this.timer.isRunning = false;
     this.timer.targetEndTime = null;
     if (this.isAmbientPlaying) this.toggleAmbientSound();
@@ -1345,7 +1392,7 @@ class MomentumApp {
     // Başarı Sesi Çal
     this.playCelebrationMelody();
 
-    // 1. Tarayıcıyı ve Sekmeyi Öne Getir (macOS Sistem Seviyesinde)
+    // 1. Tarayıcıyı ve Sekmeyi Öne Getir (macOS Sistem Seviyesinde zorla öne getir)
     this.bringTabToFront();
 
     // 2. Masaüstü Bildirimi Göster
@@ -1360,16 +1407,54 @@ class MomentumApp {
   }
 
   bringTabToFront() {
-    // Tarayıcı içi pencere odaklama
+    // 1. Tarayıcı içi pencere odaklama
     try {
       window.focus();
     } catch (e) {}
 
-    // Arka plan Python sunucusuna işletim sistemi seviyesinde sekme ve tarayıcıyı öne getirme emri ver
+    // 2. Sekme başlığını dikkat çekecek şekilde yanıp söndür
+    this.startTitleFlashing("🚨 SÜRE BİTTİ!", "🎉 SEANS TAMAMLANDI!");
+
+    // 3. Arka plan Python sunucusuna işletim sistemi seviyesinde sekme ve tarayıcıyı öne getirme emri ver
+    const pin = (this.syncState && this.syncState.pin) ? this.syncState.pin : '2026';
+    const candidateUrls = [];
     if (this.syncState && this.syncState.baseUrl) {
-      fetch(`${this.syncState.baseUrl}/api/focus-tab?pin=${encodeURIComponent(this.syncState.pin)}`, { cache: 'no-store' })
-        .catch(err => console.warn('[Focus] API hatası:', err));
+      candidateUrls.push(this.syncState.baseUrl);
     }
+    ['http://127.0.0.1:8080', 'http://localhost:8080'].forEach(u => {
+      if (!candidateUrls.includes(u)) candidateUrls.push(u);
+    });
+
+    candidateUrls.forEach(url => {
+      fetch(`${url}/api/focus-tab?pin=${encodeURIComponent(pin)}`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then(res => console.log('[Focus] Sekme öne getirme sonucu:', res))
+        .catch(err => console.warn('[Focus] API hatası:', err));
+    });
+  }
+
+  startTitleFlashing(title1, title2) {
+    if (this.titleFlashInterval) clearInterval(this.titleFlashInterval);
+    let toggle = false;
+    this.titleFlashInterval = setInterval(() => {
+      document.title = toggle ? title1 : title2;
+      toggle = !toggle;
+    }, 800);
+
+    const stopFlashing = () => {
+      if (this.titleFlashInterval) {
+        clearInterval(this.titleFlashInterval);
+        this.titleFlashInterval = null;
+        document.title = "MOMENTUM | Odak & Gelişim Sistemi";
+      }
+      window.removeEventListener('focus', stopFlashing);
+      document.removeEventListener('visibilitychange', stopFlashing);
+    };
+
+    window.addEventListener('focus', stopFlashing, { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') stopFlashing();
+    });
   }
 
   showDesktopNotification(item, duration) {
