@@ -130,19 +130,39 @@ class MomentumSyncServer:
         # Sunucu başlangıcında hemen bir güvenlik yedeği al
         self.create_backup()
 
+    @staticmethod
+    def get_google_drive_backup_dir():
+        """Kullanıcının belirlediği Google Drive / My System yedek klasörünü döner."""
+        primary_path = "/Users/semihsengul/Library/CloudStorage/GoogleDrive-semihyahama@gmail.com/My Drive/My System"
+        if os.path.exists(os.path.dirname(primary_path)):
+            return primary_path
+
+        cloud_storage = os.path.expanduser("~/Library/CloudStorage")
+        if os.path.exists(cloud_storage):
+            try:
+                for entry in os.listdir(cloud_storage):
+                    if "googledrive" in entry.lower():
+                        my_drive = os.path.join(cloud_storage, entry, "My Drive")
+                        if os.path.exists(my_drive):
+                            return os.path.join(my_drive, "My System")
+            except Exception:
+                pass
+        return None
+
     def create_backup(self):
         try:
-            # 1. Proje içindeki backups klasörü (son 30 kopya)
+            ts = time.strftime("%Y%m%d_%H%M%S")
+
+            # 1. Proje içindeki yerel backups klasörü (son 10 kopya)
             backup_dir = os.path.join(BASE_DIR, "backups")
             os.makedirs(backup_dir, exist_ok=True)
-            ts = time.strftime("%Y%m%d_%H%M%S")
             backup_path = os.path.join(backup_dir, f"momentum_data_{ts}.json")
             with open(backup_path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
 
             all_backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("momentum_data_") and f.endswith(".json")])
-            if len(all_backups) > 30:
-                for old_f in all_backups[:-30]:
+            if len(all_backups) > 10:
+                for old_f in all_backups[:-10]:
                     try:
                         os.remove(os.path.join(backup_dir, old_f))
                     except:
@@ -155,17 +175,32 @@ class MomentumSyncServer:
             with open(docs_latest, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
 
-            # 3. Varsa iCloud Drive bulut klasörü (Bulut güvenliği)
-            icloud_root = os.path.expanduser("~/Library/Mobile Documents/com~apple~CloudDocs")
-            if os.path.exists(icloud_root):
+            # 3. Google One / Google Drive Bulut Yedeklemesi (Son 30 kopya + latest)
+            gdrive_dir = self.get_google_drive_backup_dir()
+            if gdrive_dir:
                 try:
-                    icloud_dir = os.path.join(icloud_root, "Momentum_Yedekleri")
-                    os.makedirs(icloud_dir, exist_ok=True)
-                    icloud_latest = os.path.join(icloud_dir, "momentum_data_latest.json")
-                    with open(icloud_latest, 'w', encoding='utf-8') as f:
+                    os.makedirs(gdrive_dir, exist_ok=True)
+
+                    # Her zaman en güncel dosya (hızlı erişim için)
+                    gdrive_latest = os.path.join(gdrive_dir, "momentum_data_latest.json")
+                    with open(gdrive_latest, 'w', encoding='utf-8') as f:
                         json.dump(self.data, f, ensure_ascii=False, indent=2)
-                except Exception:
-                    pass
+
+                    # Zaman damgalı yedek
+                    gdrive_ts_path = os.path.join(gdrive_dir, f"momentum_data_{ts}.json")
+                    with open(gdrive_ts_path, 'w', encoding='utf-8') as f:
+                        json.dump(self.data, f, ensure_ascii=False, indent=2)
+
+                    # Google One üzerinde son 30 kopyayı sakla
+                    all_gdrive_backups = sorted([f for f in os.listdir(gdrive_dir) if f.startswith("momentum_data_") and f.endswith(".json") and f != "momentum_data_latest.json"])
+                    if len(all_gdrive_backups) > 30:
+                        for old_f in all_gdrive_backups[:-30]:
+                            try:
+                                os.remove(os.path.join(gdrive_dir, old_f))
+                            except:
+                                pass
+                except Exception as ge:
+                    print(f"[!] Google Drive yedekleme uyarısı: {ge}")
         except Exception as e:
             print(f"[!] Yedekleme uyarısı: {e}")
 
