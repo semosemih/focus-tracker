@@ -21,16 +21,13 @@ import threading
 import subprocess
 
 def focus_momentum_tab():
-    """Seans bittiğinde kullanıcının açık olan Momentum sekmesini ve tarayıcısını tüm uygulamaların önüne getirir."""
+    """Seans bittiğinde kullanıcının açık olan Momentum sekmesini ve tarayıcısını tüm uygulamaların önüne getirir.
+    System Events gerektirmez; macOS güvenlik/otomasyon onay uyarısı üretmez."""
     script = '''
     set found to false
-    
-    tell application "System Events"
-        set appNames to name of every process
-    end tell
 
     -- 1. BRAVE BROWSER (Öncelikli)
-    if appNames contains "Brave Browser" then
+    if application "Brave Browser" is running then
         try
             tell application "Brave Browser"
                 repeat with w in windows
@@ -51,14 +48,13 @@ def focus_momentum_tab():
                 end repeat
             end tell
             if found then
-                tell application "System Events" to set frontmost of process "Brave Browser" to true
                 return "Brave Browser"
             end if
         end try
     end if
 
     -- 2. GOOGLE CHROME
-    if appNames contains "Google Chrome" then
+    if application "Google Chrome" is running then
         try
             tell application "Google Chrome"
                 repeat with w in windows
@@ -79,14 +75,13 @@ def focus_momentum_tab():
                 end repeat
             end tell
             if found then
-                tell application "System Events" to set frontmost of process "Google Chrome" to true
                 return "Google Chrome"
             end if
         end try
     end if
 
     -- 3. SAFARI
-    if appNames contains "Safari" then
+    if application "Safari" is running then
         try
             tell application "Safari"
                 repeat with w in windows
@@ -105,7 +100,6 @@ def focus_momentum_tab():
                 end repeat
             end tell
             if found then
-                tell application "System Events" to set frontmost of process "Safari" to true
                 return "Safari"
             end if
         end try
