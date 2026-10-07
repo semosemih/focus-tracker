@@ -11,8 +11,9 @@ MacBook'unuzda yerel (offline) olarak çalışan, hiçbir internet bağlantısı
 
 ### 📱 Samsung (Android) Telefonunuzda Açmak & Eşitlemek İçin:
 1. Klasörün içindeki **`Telefonda_Ac.command`** dosyasına çift tıklayın.
-2. Açılan pencerede gösterilen linki telefonunuzun Chrome tarayıcısına yazın:
-   `http://192.168.1.11:8080/?pin=2026`
+2. Açılan siyah ekranda:
+   - **QR Kod ile:** Telefonunuzun kamerasını ekrandaki QR koda tutarak tek dokunuşla açabilirsiniz.
+   - **Doğrudan Link ile:** Ekranda yazan güncel adresi (örn. `http://...:8765/?pin=2026`) Chrome veya Samsung Internet adres çubuğuna yazabilirsiniz.
 3. **Canlı Senkronizasyon:** Mac ve telefonunuz anında birbirine bağlanır. Sol üstteki logoda yeşil **"Canlı Eşit"** rozeti belirir.
    - Telefonda veya Mac'te tamamlanan seanslar anında diğer cihaza yansır.
    - Sayaç başladığında her iki ekranda da aynı anda akar.
@@ -25,7 +26,7 @@ MacBook'unuzda yerel (offline) olarak çalışan, hiçbir internet bağlantısı
 ### 💻 MacBook'ta:
 1. **Tarayıcı Sekmesini Kapatın:** `⌘ + W` ile sekmeyi kapatın.
 2. **Sunucuyu Durdurun:** Klasördeki **`Durdur.command`** dosyasına çift tıklayın (veya açık olan siyah Terminal penceresini kapatın).
-   - Bu işlem 8080 portunu anında kapatır ve kullanılan RAM/CPU'yu tamamen sıfırlar.
+   - Bu işlem sadece Momentum'u kapatır; geliştirdiğiniz diğer projelere hiçbir şekilde dokunmaz.
 
 ### 📱 Samsung Telefonunuzda:
 1. Telefonunuzun **Son Uygulamalar** ekranını açın (alttan yukarı kaydırarak veya 3 çizgi tuşuyla).

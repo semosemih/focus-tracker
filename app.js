@@ -228,10 +228,10 @@ class MomentumApp {
       pin = localStorage.getItem('momentum_pin') || '2026';
     }
 
-    // Sunucu adresi: HTTP ise origin, file:// ise 127.0.0.1:8080
+    // Sunucu adresi: HTTP ise origin, file:// ise 127.0.0.1:8765
     const baseUrl = window.location.protocol.startsWith('http')
       ? window.location.origin
-      : 'http://127.0.0.1:8080';
+      : 'http://127.0.0.1:8765';
 
     this.syncState = {
       connected: false,
@@ -1421,7 +1421,7 @@ class MomentumApp {
     if (this.syncState && this.syncState.baseUrl) {
       candidateUrls.push(this.syncState.baseUrl);
     }
-    ['http://127.0.0.1:8080', 'http://localhost:8080'].forEach(u => {
+    ['http://127.0.0.1:8765', 'http://localhost:8765', 'http://127.0.0.1:8080', 'http://localhost:8080'].forEach(u => {
       if (!candidateUrls.includes(u)) candidateUrls.push(u);
     });
 

@@ -12,10 +12,12 @@ import time
 from urllib.parse import urlparse, parse_qs
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-PORT = 8080
+PORT = 8765
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, "momentum_data.json")
 DEFAULT_PIN = "2026"
+PORT_FILE = os.path.join(BASE_DIR, ".momentum_port")
+PID_FILE = os.path.join(BASE_DIR, ".momentum_pid")
 
 import threading
 import subprocess
@@ -36,7 +38,7 @@ def focus_momentum_tab():
                         set tabIdx to tabIdx + 1
                         set u to URL of t
                         set ttl to title of t
-                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                        if u contains "8765" or u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
                             set active tab index of w to tabIdx
                             set index of w to 1
                             activate
@@ -63,7 +65,7 @@ def focus_momentum_tab():
                         set tabIdx to tabIdx + 1
                         set u to URL of t
                         set ttl to title of t
-                        if u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
+                        if u contains "8765" or u contains "8080" or u contains "my%20system" or u contains "index.html" or ttl contains "MOMENTUM" then
                             set active tab index of w to tabIdx
                             set index of w to 1
                             activate
@@ -280,6 +282,19 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         query = parse_qs(parsed.query)
 
+        # 0. API: Sağlık & Momentum Tanıma Kontrolü (PIN gerekmez, port çakışmasını önler)
+        if path == "/api/ping":
+            self.send_response(200)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "app": "momentum",
+                "status": "ok",
+                "port": self.server.server_address[1]
+            }).encode('utf-8'))
+            return
+
         # 1. API: Veri Çekme
         if path == "/api/data":
             if not self.check_pin(query):
@@ -427,17 +442,236 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
         self.send_response(404)
         self.end_headers()
 
-def run_server(port=PORT):
+def get_local_ip():
+    """Bağlı olunan aktif ağın IP adresini dinamik ve güvenilir şekilde tespit eder."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+        for iface in ["en0", "en1"]:
+            try:
+                out = subprocess.check_output(["ipconfig", "getifaddr", iface], stderr=subprocess.DEVNULL)
+                val = out.decode().strip()
+                if val:
+                    ip = val
+                    break
+            except Exception:
+                pass
+    finally:
+        s.close()
+    return ip
+
+def is_momentum_running(port):
+    """Belirtilen portta Momentum sunucusunun çalışıp çalışmadığını doğrular."""
+    import urllib.request
+    try:
+        url = f"http://127.0.0.1:{port}/api/ping"
+        req = urllib.request.Request(url, headers={"User-Agent": "MomentumChecker"})
+        with urllib.request.urlopen(req, timeout=0.8) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return data.get("app") == "momentum"
+    except Exception:
+        return False
+
+def get_running_momentum():
+    """Halen çalışan bir Momentum sunucusu varsa (port, pid) döndürür."""
+    if os.path.exists(PORT_FILE):
+        try:
+            with open(PORT_FILE, "r") as f:
+                port = int(f.read().strip())
+            if is_momentum_running(port):
+                pid = None
+                if os.path.exists(PID_FILE):
+                    try:
+                        with open(PID_FILE, "r") as pf:
+                            pid = int(pf.read().strip())
+                    except Exception:
+                        pass
+                return port, pid
+        except Exception:
+            pass
+    # Port dosyası silinmiş olsa dahi port aralığını yokla
+    for p in range(PORT, PORT + 10):
+        if is_momentum_running(p):
+            return p, None
+    return None, None
+
+def find_available_port(start_port=PORT, max_attempts=50):
+    """Çakışma olmadan kullanılabilecek boş bir port bulur."""
+    import socket
+    for p in range(start_port, start_port + max_attempts):
+        if is_momentum_running(p):
+            return p
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(('0.0.0.0', p))
+                return p
+            except OSError:
+                continue
+    return start_port
+
+def display_terminal_screen(ip, port, pin):
+    """Terminalde hem şık ve taranabilir QR kod hem de doğrudan tıklanabilir bağlantı gösterir."""
+    url = f"http://{ip}:{port}/?pin={pin}"
+    try:
+        os.system("clear")
+    except Exception:
+        pass
+    print("\033[1;36m" + "=" * 62 + "\033[0m")
+    print("\033[1;33m    🚀 MOMENTUM - CANLI SENKRONİZASYON & TELEFON MERKEZİ\033[0m")
+    print("\033[1;36m" + "=" * 62 + "\033[0m\n")
+
+    print("\033[1;32m 📱 1. YÖNTEM: QR KOD İLE ANINDA AÇ (En Hızlısı)\033[0m")
+    print(" Telefonunuzun kamerasını açın ve aşağıdaki koda tutun:\n")
+
+    try:
+        import qrcode
+        qr = qrcode.QRCode(border=1)
+        qr.add_data(url)
+        qr.print_ascii(invert=True)
+    except Exception as e:
+        print(f" (QR modülü yüklenemedi: {e})")
+
+    print("\n" + "\033[1;36m" + "-" * 62 + "\033[0m")
+    print("\033[1;32m 🌐 2. YÖNTEM: TELEFON TARAYICISINDAN DOĞRUDAN GİR\033[0m")
+    print(" Telefonunuzun Chrome veya Samsung Internet adres çubuğuna yazın:\n")
+    print(f"\033[1;37;44m  👉  {url}  \033[0m\n")
+    print(f" 🔒 Güvenlik PIN Kodu: \033[1;33m{pin}\033[0m (Bağlantıya otomatik tanımlıdır)")
+    print(f" ⚡ Ayrılmış Port:     \033[1;32m{port}\033[0m (Diğer projelerinizle ASLA çakışmaz)")
+    print(f" 📡 Bağlı Yerel IP:    \033[1;34m{ip}\033[0m")
+    print("\033[1;36m" + "-" * 62 + "\033[0m")
+    print(" 💡 \033[1mİPUCU (Tam Ekran Bağımsız Uygulama Yapma):\033[0m")
+    print(" Telefonda sayfa açılınca sağ üstteki 3 noktaya (⋮) basın,")
+    print(" 'Ana Ekrana Ekle' (veya 'Uygulamayı Yükle') seçeneğine dokunun.")
+    print(" Telefonunuzun ana ekranına kendi özel logosuyla eklenecektir!")
+    print("\033[1;36m" + "-" * 62 + "\033[0m")
+    print(" 🛑 Kapatmak için bu terminal penceresini kapatabilir veya")
+    print("    klavyeden \033[1mCtrl + C\033[0m tuşlarına basabilirsiniz.")
+    print("\033[1;36m" + "=" * 62 + "\033[0m\n")
+    sys.stdout.flush()
+
+def cleanup_files():
+    if os.path.exists(PORT_FILE):
+        try: os.remove(PORT_FILE)
+        except Exception: pass
+    if os.path.exists(PID_FILE):
+        try: os.remove(PID_FILE)
+        except Exception: pass
+
+def run_server(port=PORT, show_screen=False):
     server_address = ('0.0.0.0', port)
     httpd = ThreadingHTTPServer(server_address, MomentumHTTPRequestHandler)
-    print(f"[*] Momentum Eşitleme Sunucusu Port {port} üzerinde hazır.")
-    httpd.serve_forever()
+    
+    with open(PORT_FILE, "w") as f:
+        f.write(str(port))
+    with open(PID_FILE, "w") as f:
+        f.write(str(os.getpid()))
+
+    ip = get_local_ip()
+    if show_screen:
+        display_terminal_screen(ip, port, DEFAULT_PIN)
+    else:
+        print(f"[*] Momentum Eşitleme Sunucusu Port {port} üzerinde hazır (IP: {ip}).")
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[*] Sunucu durduruldu.")
+    finally:
+        cleanup_files()
+
+def stop_server():
+    try:
+        os.system("clear")
+    except Exception:
+        pass
+    print("\033[1;36m" + "=" * 62 + "\033[0m")
+    print("\033[1;31m    🛑 MOMENTUM - SUNUCUYU GÜVENLE KAPAT\033[0m")
+    print("\033[1;36m" + "=" * 62 + "\033[0m\n")
+
+    port, pid = get_running_momentum()
+    stopped = False
+
+    if pid:
+        try:
+            os.kill(pid, 9)
+            stopped = True
+        except Exception:
+            pass
+
+    if port and is_momentum_running(port):
+        try:
+            out = subprocess.check_output(["lsof", "-ti", f":{port}"], stderr=subprocess.DEVNULL)
+            pids = out.decode().strip().split()
+            for p in pids:
+                if p:
+                    os.kill(int(p), 9)
+                    stopped = True
+        except Exception:
+            pass
+
+    cleanup_files()
+
+    if stopped:
+        print("  ✅ Momentum yerel sunucusu başarıyla durduruldu.")
+        if port:
+            print(f"  🔒 Port {port} serbest bırakıldı.")
+        print("  💾 Tüm verileriniz 'momentum_data.json' dosyasına güvenle kaydedildi.")
+        print("  ⚡ Diğer geliştirdiğiniz projelere hiçbir şekilde dokunulmadı.")
+    else:
+        print("  ℹ️  Çalışan bir Momentum sunucusu bulunamadı (zaten kapalı).")
+
+    print("\n\033[1;36m" + "=" * 62 + "\033[0m")
+    time.sleep(2)
+
+def launch_browser():
+    port, pid = get_running_momentum()
+    if not port or not is_momentum_running(port):
+        port = find_available_port(PORT)
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), str(port)],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.8)
+    url = f"http://localhost:{port}/?pin={DEFAULT_PIN}"
+    subprocess.run(["open", url])
+
+def handle_phone_mode():
+    port, pid = get_running_momentum()
+    ip = get_local_ip()
+
+    if port and is_momentum_running(port):
+        display_terminal_screen(ip, port, DEFAULT_PIN)
+        print(" ℹ️  (Sunucu arka planda zaten aktif durumda. Bu ekranı açık tutabilir")
+        print("     veya telefonunuzdan bağlandıktan sonra kapatabilirsiniz.)")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n[*] Çıkış yapıldı.")
+    else:
+        free_port = find_available_port(PORT)
+        run_server(free_port, show_screen=True)
 
 if __name__ == "__main__":
-    port = PORT
     if len(sys.argv) > 1:
-        try:
-            port = int(sys.argv[1])
-        except ValueError:
-            pass
-    run_server(port)
+        arg = sys.argv[1]
+        if arg == "--phone":
+            handle_phone_mode()
+            sys.exit(0)
+        elif arg == "--launch-browser":
+            launch_browser()
+            sys.exit(0)
+        elif arg == "--stop":
+            stop_server()
+            sys.exit(0)
+        else:
+            try:
+                p = int(arg)
+                run_server(p, show_screen=False)
+                sys.exit(0)
+            except ValueError:
+                pass
+    run_server(PORT, show_screen=False)
