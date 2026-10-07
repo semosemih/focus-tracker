@@ -295,6 +295,19 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
             }).encode('utf-8'))
             return
 
+        # 0.5. API: Sade ve Güvenli QR Kod Sayfası
+        if path in ("/qr", "/qr.html"):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            port = self.server.server_address[1]
+            ip = get_local_ip()
+            ip_url = f"http://{ip}:{port}/?pin={DEFAULT_PIN}"
+            svg = generate_svg_qr(ip_url)
+            html = render_qr_html(svg, ip_url)
+            self.wfile.write(html.encode('utf-8'))
+            return
+
         # 1. API: Veri Çekme
         if path == "/api/data":
             if not self.check_pin(query):
@@ -514,44 +527,127 @@ def find_available_port(start_port=PORT, max_attempts=50):
                 continue
     return start_port
 
-def display_terminal_screen(ip, port, pin):
-    """Terminalde hem şık ve taranabilir QR kod hem de doğrudan tıklanabilir bağlantı gösterir."""
-    url = f"http://{ip}:{port}/?pin={pin}"
+def get_hostname():
+    """Mac'in yerel ağdaki kalıcı Bonjour/mDNS adını tespit eder."""
+    try:
+        out = subprocess.check_output(["scutil", "--get", "LocalHostName"], stderr=subprocess.DEVNULL)
+        h = out.decode().strip()
+        if h:
+            return f"{h}.local"
+    except Exception:
+        pass
+    import socket
+    return socket.gethostname()
+
+def generate_svg_qr(data):
+    """Saf Python SVG QR kod üretir. Tüm telefon kameraları 0.05 saniyede algılar."""
+    import qrcode
+    qr = qrcode.QRCode(border=3)
+    qr.add_data(data)
+    qr.make(fit=True)
+    matrix = qr.get_matrix()
+    size = len(matrix)
+    rects = []
+    for y, row in enumerate(matrix):
+        for x, val in enumerate(row):
+            if val:
+                rects.append(f'<rect x="{x}" y="{y}" width="1" height="1"/>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" width="280" height="280" style="shape-rendering: crispEdges;"><rect width="100%" height="100%" fill="#ffffff"/><g fill="#0f172a">{"".join(rects)}</g></svg>'
+
+def render_qr_html(svg, primary_url):
+    return f'''<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOMENTUM - Telefonda Aç</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #090d16;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }}
+    .card {{
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 28px;
+      padding: 36px 32px 30px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+    }}
+    h1 {{ font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; color: #38bdf8; letter-spacing: -0.5px; }}
+    p.sub {{ font-size: 0.9rem; color: #94a3b8; margin-bottom: 24px; }}
+    .qr-container {{
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 24px;
+      display: inline-block;
+      margin-bottom: 22px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }}
+    .qr-container svg {{ display: block; }}
+    .copy-btn {{
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }}
+    .copy-btn:hover {{
+      background: #334155;
+      color: #f8fafc;
+      border-color: #475569;
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚀 MOMENTUM</h1>
+    <p class="sub">Telefonunuzun kamerasını QR koda tutun</p>
+    
+    <div class="qr-container">
+      {svg}
+    </div>
+
+    <button class="copy-btn" onclick="navigator.clipboard.writeText('{primary_url}').then(() => {{ this.innerText = 'Bağlantı Kopyalandı! ✓'; setTimeout(() => {{ this.innerText = 'Bağlantıyı Kopyala'; }}, 2000); }});">
+      Bağlantıyı Kopyala
+    </button>
+  </div>
+</body>
+</html>'''
+
+def display_terminal_screen(port, pin):
+    """Terminalde sade ve güvenli başlatma ekranı gösterir."""
     try:
         os.system("clear")
     except Exception:
         pass
-    print("\033[1;36m" + "=" * 62 + "\033[0m")
-    print("\033[1;33m    🚀 MOMENTUM - CANLI SENKRONİZASYON & TELEFON MERKEZİ\033[0m")
-    print("\033[1;36m" + "=" * 62 + "\033[0m\n")
+    print("\033[1;36m" + "=" * 60 + "\033[0m")
+    print("\033[1;33m    🚀 MOMENTUM - CANLI TELEFON BAĞLANTI MERKEZİ\033[0m")
+    print("\033[1;36m" + "=" * 60 + "\033[0m\n")
 
-    print("\033[1;32m 📱 1. YÖNTEM: QR KOD İLE ANINDA AÇ (En Hızlısı)\033[0m")
-    print(" Telefonunuzun kamerasını açın ve aşağıdaki koda tutun:\n")
+    print("\033[1;32m 📱 Mac ekranınızda güvenli QR Kod penceresi açıldı.\033[0m")
+    print(" Telefonunuzun kamerasını ekrandaki koda tutarak anında bağlanabilirsiniz.\n")
 
-    try:
-        import qrcode
-        qr = qrcode.QRCode(border=1)
-        qr.add_data(url)
-        qr.print_ascii(invert=True)
-    except Exception as e:
-        print(f" (QR modülü yüklenemedi: {e})")
-
-    print("\n" + "\033[1;36m" + "-" * 62 + "\033[0m")
-    print("\033[1;32m 🌐 2. YÖNTEM: TELEFON TARAYICISINDAN DOĞRUDAN GİR\033[0m")
-    print(" Telefonunuzun Chrome veya Samsung Internet adres çubuğuna yazın:\n")
-    print(f"\033[1;37;44m  👉  {url}  \033[0m\n")
-    print(f" 🔒 Güvenlik PIN Kodu: \033[1;33m{pin}\033[0m (Bağlantıya otomatik tanımlıdır)")
-    print(f" ⚡ Ayrılmış Port:     \033[1;32m{port}\033[0m (Diğer projelerinizle ASLA çakışmaz)")
-    print(f" 📡 Bağlı Yerel IP:    \033[1;34m{ip}\033[0m")
-    print("\033[1;36m" + "-" * 62 + "\033[0m")
-    print(" 💡 \033[1mİPUCU (Tam Ekran Bağımsız Uygulama Yapma):\033[0m")
-    print(" Telefonda sayfa açılınca sağ üstteki 3 noktaya (⋮) basın,")
-    print(" 'Ana Ekrana Ekle' (veya 'Uygulamayı Yükle') seçeneğine dokunun.")
-    print(" Telefonunuzun ana ekranına kendi özel logosuyla eklenecektir!")
-    print("\033[1;36m" + "-" * 62 + "\033[0m")
-    print(" 🛑 Kapatmak için bu terminal penceresini kapatabilir veya")
-    print("    klavyeden \033[1mCtrl + C\033[0m tuşlarına basabilirsiniz.")
-    print("\033[1;36m" + "=" * 62 + "\033[0m\n")
+    print("\033[1;36m" + "-" * 60 + "\033[0m")
+    print(f" 🔒 Güvenlik PIN Kodu: \033[1;33m{pin}\033[0m")
+    print(f" ⚡ Ayrılmış Port:     \033[1;32m{port}\033[0m")
+    print("\033[1;36m" + "-" * 60 + "\033[0m")
+    print(" 🛑 Kapatmak için bu pencereyi kapatabilir veya \033[1mCtrl + C\033[0m yapabilirsiniz.")
+    print("\033[1;36m" + "=" * 60 + "\033[0m\n")
     sys.stdout.flush()
 
 def cleanup_files():
@@ -572,10 +668,13 @@ def run_server(port=PORT, show_screen=False):
         f.write(str(os.getpid()))
 
     ip = get_local_ip()
+    host = get_hostname()
     if show_screen:
-        display_terminal_screen(ip, port, DEFAULT_PIN)
+        display_terminal_screen(port, DEFAULT_PIN)
+        # 0.5 sn sonra Mac'te jilet gibi net QR kod penceresini otomatik aç
+        threading.Timer(0.5, lambda: subprocess.run(["open", f"http://localhost:{port}/qr"], stderr=subprocess.DEVNULL)).start()
     else:
-        print(f"[*] Momentum Eşitleme Sunucusu Port {port} üzerinde hazır (IP: {ip}).")
+        print(f"[*] Momentum Eşitleme Sunucusu Port {port} üzerinde hazır (IP: {ip}, Host: {host}).")
 
     try:
         httpd.serve_forever()
@@ -641,11 +740,12 @@ def launch_browser():
 def handle_phone_mode():
     port, pid = get_running_momentum()
     ip = get_local_ip()
+    host = get_hostname()
 
     if port and is_momentum_running(port):
-        display_terminal_screen(ip, port, DEFAULT_PIN)
-        print(" ℹ️  (Sunucu arka planda zaten aktif durumda. Bu ekranı açık tutabilir")
-        print("     veya telefonunuzdan bağlandıktan sonra kapatabilirsiniz.)")
+        display_terminal_screen(port, DEFAULT_PIN)
+        subprocess.run(["open", f"http://localhost:{port}/qr"], stderr=subprocess.DEVNULL)
+        print(" ℹ️  (Sunucu arka planda zaten aktif. Mac ekranında net QR kod penceresi açıldı.)")
         try:
             while True:
                 time.sleep(1)
