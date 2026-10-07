@@ -291,21 +291,48 @@ class MomentumApp {
     return Array.from(map.values());
   }
 
-  mergeItems(localItems, remoteItems) {
+  mergeItems(localItems, remoteItems, isRemoteAuthoritative = false) {
     const result = {};
     const categories = ['spor', 'ders', 'yaraticilik'];
+
+    // Eğer doğrudan sunucu yayınıysa (pollSync) veya uzak veri tam yetkiliyse, doğrudan uzak veriyi kullan
+    if (isRemoteAuthoritative && remoteItems) {
+      categories.forEach(cat => {
+        result[cat] = Array.isArray(remoteItems[cat]) ? remoteItems[cat] : [];
+      });
+      return result;
+    }
+
     categories.forEach(cat => {
       const itemMap = new Map();
       const rList = (remoteItems && remoteItems[cat]) || [];
       const lList = (localItems && localItems[cat]) || [];
-      rList.forEach(it => { if (it && it.id) itemMap.set(it.id, it); });
+
+      // 1. Önce merkezi sunucudaki güncel verileri yerleştir
+      rList.forEach(it => {
+        if (it && it.id) itemMap.set(it.id, { ...it });
+      });
+
+      // 2. Yereldeki öğeleri kontrol et: Asla varsayılan/eski verilerle sunucuyu ezme
       lList.forEach(it => {
         if (it && it.id) {
           if (!itemMap.has(it.id)) {
-            itemMap.set(it.id, it);
+            // Sunucuda hiç olmayan yeni bir öğe ise; varsayılan şablon değilse veya özel oluşturulmuşsa ekle
+            const isDefaultId = (DEFAULT_ITEMS[cat] || []).some(d => d.id === it.id);
+            if (!isDefaultId || it.updatedAt) {
+              itemMap.set(it.id, { ...it });
+            }
           } else {
             const existing = itemMap.get(it.id);
-            itemMap.set(it.id, { ...existing, ...it });
+            const localTime = it.updatedAt || 0;
+            const remoteTime = existing.updatedAt || 0;
+            // YALNIZCA yereldeki öğe açıkça sunucudakinden DAHA YENİ düzenlenmişse yereli al
+            if (localTime > remoteTime) {
+              itemMap.set(it.id, { ...existing, ...it });
+            } else {
+              // Aksi halde daima merkezi sunucu verisini koru
+              itemMap.set(it.id, { ...it, ...existing });
+            }
           }
         }
       });
@@ -350,7 +377,15 @@ class MomentumApp {
         // Asla ezme! Akıllı birleştirme (smart merge) yap
         const mergedSessions = this.mergeSessions(localSessions, serverSessions);
         const mergedTodos = this.mergeTodos(this.todos || [], data.todos || []);
-        const mergedItems = this.mergeItems(this.items || {}, data.items || {});
+        
+        // Eğer cihaz ilk kez açılıyorsa (localStorage boş) veya sunucuda geçerli başlıklar varsa
+        const hasLocalCustomItems = !!localStorage.getItem('momentum_items');
+        let mergedItems;
+        if (!hasLocalCustomItems && data.items && Object.keys(data.items).length > 0) {
+          mergedItems = data.items;
+        } else {
+          mergedItems = this.mergeItems(this.items || {}, data.items || {});
+        }
 
         const hadLocalExtraSessions = mergedSessions.length > serverSessions.length;
         const hadLocalExtraTodos = mergedTodos.length > (Array.isArray(data.todos) ? data.todos.length : 0);
@@ -430,7 +465,7 @@ class MomentumApp {
 
     // Kategoriler ve alt başlıklar güncellendiyse
     if (data.items && Object.keys(data.items).length > 0) {
-      this.items = this.mergeItems(this.items || {}, data.items);
+      this.items = this.mergeItems(this.items || {}, data.items, true);
       this.recalculateStatsFromSessions();
       localStorage.setItem('momentum_items', JSON.stringify(this.items));
       shouldRender = true;
@@ -1111,6 +1146,7 @@ class MomentumApp {
         target.title = title;
         target.emoji = emoji;
         target.color = color;
+        target.updatedAt = Date.now();
       }
     } else {
       // Yeni Ekleme
@@ -1121,7 +1157,8 @@ class MomentumApp {
         emoji: emoji,
         color: color,
         sessionsCount: 0,
-        totalMinutes: 0
+        totalMinutes: 0,
+        updatedAt: Date.now()
       };
       if (!this.items[this.activeCategory]) this.items[this.activeCategory] = [];
       this.items[this.activeCategory].push(newItem);

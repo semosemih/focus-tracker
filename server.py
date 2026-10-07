@@ -19,6 +19,21 @@ DEFAULT_PIN = "2026"
 PORT_FILE = os.path.join(BASE_DIR, ".momentum_port")
 PID_FILE = os.path.join(BASE_DIR, ".momentum_pid")
 
+DEFAULT_ITEM_TITLES = {
+    "spor-1": "Kardiyo & Koşu",
+    "spor-2": "Kuvvet & Ağırlık",
+    "spor-3": "Esneme & Mobilite",
+    "spor-4": "Bisiklet & Yürüyüş",
+    "ders-1": "Matematik & Analiz",
+    "ders-2": "Kodlama & Proje",
+    "ders-3": "İngilizce / Dil",
+    "ders-4": "Kitap Okuma",
+    "yar-1": "Çizim & Tasarım",
+    "yar-2": "Müzik & Enstrüman",
+    "yar-3": "Yaratıcı Yazarlık",
+    "yar-4": "Fikir & Beyin Fırtınası"
+}
+
 import threading
 import subprocess
 
@@ -425,10 +440,66 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
                 payload = json.loads(body.decode('utf-8'))
                 
                 # Payload kontrolü ve veri güncellemesi
-                if "items" in payload:
-                    sync_service.data["items"] = payload["items"]
-                if "sessions" in payload:
-                    sync_service.data["sessions"] = payload["sessions"]
+                if "items" in payload and isinstance(payload["items"], dict):
+                    existing_items = sync_service.data.get("items", {})
+                    incoming_items = payload["items"]
+                    sanitized_items = {}
+
+                    for cat in ("spor", "ders", "yaraticilik"):
+                        ex_list = existing_items.get(cat, [])
+                        in_list = incoming_items.get(cat, [])
+                        ex_map = {item["id"]: item for item in ex_list if isinstance(item, dict) and "id" in item}
+
+                        cat_result = []
+                        for in_item in in_list:
+                            if not isinstance(in_item, dict) or "id" not in in_item:
+                                continue
+                            iid = in_item["id"]
+                            ex_item = ex_map.get(iid)
+
+                            # Eğer sunucuda bu öğe zaten özelleştirilmişse ve gelen öğe varsayılan başlığa dönmüşse,
+                            # ve açıkça daha yeni bir updatedAt yoksa, sunucudaki özelleştirmeyi koru!
+                            if ex_item and iid in DEFAULT_ITEM_TITLES:
+                                default_title = DEFAULT_ITEM_TITLES[iid]
+                                ex_is_custom = (ex_item.get("title") != default_title)
+                                in_is_default = (in_item.get("title") == default_title)
+                                in_time = in_item.get("updatedAt", 0)
+                                ex_time = ex_item.get("updatedAt", 0)
+
+                                if ex_is_custom and in_is_default and in_time <= ex_time:
+                                    merged_item = dict(ex_item)
+                                    merged_item.update(in_item)
+                                    merged_item["title"] = ex_item.get("title")
+                                    merged_item["emoji"] = ex_item.get("emoji")
+                                    merged_item["color"] = ex_item.get("color")
+                                    if "updatedAt" in ex_item:
+                                        merged_item["updatedAt"] = ex_item["updatedAt"]
+                                    cat_result.append(merged_item)
+                                    continue
+                                elif ex_item:
+                                    merged_item = dict(ex_item)
+                                    merged_item.update(in_item)
+                                    cat_result.append(merged_item)
+                                    continue
+
+                            cat_result.append(in_item)
+
+                        sanitized_items[cat] = cat_result if in_list else ex_list
+
+                    sync_service.data["items"] = sanitized_items
+
+                if "sessions" in payload and isinstance(payload["sessions"], list):
+                    # Seansları birleştirerek koru (asla var olanları silme)
+                    existing_sessions = sync_service.data.get("sessions", [])
+                    sess_map = {}
+                    for s in existing_sessions:
+                        if isinstance(s, dict) and (s.get("id") or s.get("timestamp")):
+                            sess_map[s.get("id") or f"ses-{s.get('timestamp')}"] = s
+                    for s in payload["sessions"]:
+                        if isinstance(s, dict) and (s.get("id") or s.get("timestamp")):
+                            sess_map[s.get("id") or f"ses-{s.get('timestamp')}"] = s
+                    sync_service.data["sessions"] = sorted(sess_map.values(), key=lambda x: x.get("timestamp", 0))
+
                 if "todos" in payload:
                     sync_service.data["todos"] = payload["todos"]
                 if "timer" in payload:
@@ -732,7 +803,8 @@ def launch_browser():
     if not port or not is_momentum_running(port):
         port = find_available_port(PORT)
         subprocess.Popen([sys.executable, os.path.abspath(__file__), str(port)],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
         time.sleep(0.8)
     url = f"http://localhost:{port}/?pin={DEFAULT_PIN}"
     subprocess.run(["open", url])
