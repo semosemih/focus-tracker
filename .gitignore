@@ -17,3 +17,7 @@ __pycache__/
 momentum_data.json
 backups/
 
+# Runtime / Geçici durum dosyaları
+.momentum_pid
+.momentum_port
+
