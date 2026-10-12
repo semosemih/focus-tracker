@@ -39,11 +39,31 @@ Klasördeki **`Durdur.command`** dosyasına çift tıklayın. Port 8080 anında 
 
 ## 📁 Proje Mimarisi
 
-```text
 ├── index.html             # Semantik HTML5 arayüzü & PWA etiketleri
 ├── style.css              # İskandinav/Titanyum mat renk paleti & duyarlı tasarım
-├── app.js                 # Zamanlayıcı motoru, yerel depolama & canlı senkronizasyon istemcisi
-├── server.py              # Yerel Python3 senkronizasyon & güvenlik API sunucusu
+├── server.py              # Yerel API sunucusu giriş noktası (Entry point)
+├── core/                  # Modüler Sunucu Mimarisi (Python)
+│   ├── config.py          # Sistem sabitleri ve güvenlik listeleri
+│   ├── storage.py         # Thread-safe veritabanı & akıllı çakışma çözümleme
+│   ├── backup.py          # 3 katmanlı yedekleme (Yerel, Belgeler, Google Drive)
+│   ├── network.py         # Yerel IP, port yönetimi & süreç denetimi
+│   ├── macos.py           # AppleScript & macOS sistem otomasyonları
+│   ├── qr.py              # Saf SVG QR kod & mobil arayüz üretici
+│   ├── handlers.py        # HTTP API & statik dosya işleyici
+│   └── runner.py          # Sunucu yaşam döngüsü & CLI yönlendirici
+├── js/                    # Modüler İstemci Mimarisi (JavaScript - God Class'sız)
+│   ├── constants.js       # Renk paletleri, emojiler, varsayılan şablonlar
+│   ├── services/          # Temel Bağımsız Servisler
+│   │   ├── storage.js     # Yerel depolama & CSV/JSON dışa aktarma (StorageService)
+│   │   ├── audio.js       # Web Audio API & Zen ambiyans motoru (AudioService)
+│   │   ├── sync.js        # Canlı sunucu senkronizasyonu (SyncService)
+│   │   └── timer.js       # Web Worker hassas zamanlayıcı (TimerService)
+│   ├── modules/           # İş Mantığı Modülleri
+│   │   ├── todos.js       # Görev yönetimi (TodoManager)
+│   │   ├── calendar.js    # Takvim & gün geçmişi (CalendarManager)
+│   │   ├── analytics.js   # Isı haritası, seviye & istatistikler (AnalyticsManager)
+│   │   └── ui.js          # Arayüz efektleri, konfeti & bildirimler (UIManager)
+│   └── app.js             # Orkestratör / Koordinatör (MomentumApp)
 ├── Baslat.command         # Mac için tek tıkla başlatıcı
 ├── Telefonda_Ac.command   # Wi-Fi mobil paylaşım başlatıcısı
 ├── Durdur.command         # Güvenli tek tıkla durdurucu
