@@ -374,6 +374,11 @@ class MomentumApp {
       });
     });
 
+    // Günlük Şerit Kategori Rozetleri (Hızlı Geçiş)
+    document.getElementById('req-spor')?.addEventListener('click', () => this.switchCategory('spor'));
+    document.getElementById('req-ders')?.addEventListener('click', () => this.switchCategory('ders'));
+    document.getElementById('req-yaraticilik')?.addEventListener('click', () => this.switchCategory('yaraticilik'));
+
     // Ana Görünüm Sekmeleri
     this.btnViewCards?.addEventListener('click', () => this.switchView('cards'));
     this.btnViewTodos?.addEventListener('click', () => this.switchView('todos'));
@@ -418,10 +423,17 @@ class MomentumApp {
 
     // Süre Seçim Modalı
     this.btnCloseDurationModal?.addEventListener('click', () => this.closeDurationModal());
-    document.querySelectorAll('.duration-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const mins = parseInt(pill.dataset.mins, 10);
-        this.startSession(mins);
+    this.durationModal?.addEventListener('click', (e) => {
+      if (e.target === this.durationModal) {
+        this.closeDurationModal();
+      }
+    });
+    document.querySelectorAll('.duration-card, .duration-pill').forEach(card => {
+      card.addEventListener('click', () => {
+        const mins = parseInt(card.dataset.minutes || card.dataset.mins, 10);
+        if (mins) {
+          this.startSession(mins);
+        }
       });
     });
 
@@ -492,6 +504,11 @@ class MomentumApp {
     if (this.activeCatDesc) this.activeCatDesc.textContent = info.desc;
 
     this.renderSquareCards();
+
+    // Kullanıcı Takvim, Profil veya Görevler sekmesindeyse otomatik olarak Odak (kartlar) görünümüne dön
+    if (this.activeView !== 'cards') {
+      this.switchView('cards');
+    }
   }
 
   switchView(viewName) {

@@ -344,6 +344,14 @@ body {
 .cat-req {
   color: var(--text-dim);
   transition: all var(--transition-fast);
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.cat-req:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
 }
 
 .cat-req.completed {
