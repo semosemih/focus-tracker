@@ -87,14 +87,6 @@ class UIManager {
       } catch (e) {
         console.warn('[UI] Bildirim hatası:', e);
       }
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          try {
-            new Notification(title, { body: body, icon: 'icon.svg' });
-          } catch (e) {}
-        }
-      });
     }
   }
 

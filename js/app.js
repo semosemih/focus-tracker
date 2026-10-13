@@ -789,10 +789,6 @@ class MomentumApp {
     this.updateTimerDisplay();
     this.focusOverlay?.classList.add('active');
     this.audio.playTone(520, 0.15);
-
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
   }
 
   toggleTimer() {
