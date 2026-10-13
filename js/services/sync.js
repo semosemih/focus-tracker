@@ -232,7 +232,21 @@ class SyncService {
 
   requestTabFocus() {
     try {
-      const url = `${this.state.baseUrl}/api/focus-tab?pin=${encodeURIComponent(this.state.pin)}`;
+      let browser = '';
+      const ua = navigator.userAgent;
+      if (ua.includes('Brave') || navigator.brave) {
+        browser = 'Brave Browser';
+      } else if (ua.includes('Edg/')) {
+        browser = 'Microsoft Edge';
+      } else if (ua.includes('Chrome/')) {
+        browser = 'Google Chrome';
+      } else if (ua.includes('Safari/') && !ua.includes('Chrome/')) {
+        browser = 'Safari';
+      }
+
+      const port = window.location.port || '8765';
+      const currentUrl = encodeURIComponent(window.location.href);
+      const url = `${this.state.baseUrl}/api/focus-tab?pin=${encodeURIComponent(this.state.pin)}&port=${encodeURIComponent(port)}&browser=${encodeURIComponent(browser)}&url=${currentUrl}`;
       fetch(url, { method: 'GET', cache: 'no-store' }).catch(() => {});
     } catch (e) {
       // sessizce geç

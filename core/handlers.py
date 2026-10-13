@@ -143,7 +143,15 @@ class MomentumHTTPRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 return
 
-            threading.Thread(target=MacOSService.focus_momentum_tab, daemon=True).start()
+            req_port = query.get("port", [str(self.server.server_address[1])])[0]
+            req_url = query.get("url", [None])[0]
+            req_browser = query.get("browser", [None])[0]
+
+            threading.Thread(
+                target=MacOSService.focus_momentum_tab,
+                args=(req_port, req_url, req_browser),
+                daemon=True
+            ).start()
             self.send_json(200, {"ok": True})
             return
 

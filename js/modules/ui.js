@@ -72,7 +72,7 @@ class UIManager {
     const title = `🎉 Seans Tamamlandı! (${duration} dk)`;
     const body = `${item ? (item.emoji + ' ' + item.title) : 'Odaklanma seansın'} başarıyla bitti. Görmek için tıkla!`;
 
-    if (Notification.permission === 'granted') {
+    const sendNotif = () => {
       try {
         const notif = new Notification(title, {
           body: body,
@@ -87,6 +87,16 @@ class UIManager {
       } catch (e) {
         console.warn('[UI] Bildirim hatası:', e);
       }
+    };
+
+    if (Notification.permission === 'granted') {
+      sendNotif();
+    } else if (Notification.permission === 'default') {
+      try {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') sendNotif();
+        });
+      } catch (e) {}
     }
   }
 

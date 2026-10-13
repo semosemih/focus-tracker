@@ -795,7 +795,7 @@ class MomentumApp {
     this.timerService.toggle();
     if (!this.timer.isRunning) {
       const titleItem = this.timer.activeItem ? this.timer.activeItem.title : 'Momentum';
-      document.title = `⏸️ Duraklatıldı • ${titleItem}`;
+      document.title = `⏸️ Duraklatıldı • ${titleItem} • MOMENTUM`;
       this.audio.playTone(380, 0.1);
     } else {
       this.audio.playTone(520, 0.1);
@@ -828,7 +828,7 @@ class MomentumApp {
     if (this.timerDigits) this.timerDigits.textContent = timeFormatted;
 
     if (this.timer.isRunning && this.timer.activeItem) {
-      document.title = `⏱️ ${timeFormatted} • ${this.timer.activeItem.title}`;
+      document.title = `⏱️ ${timeFormatted} • ${this.timer.activeItem.title} • MOMENTUM`;
     }
 
     const circumference = 2 * Math.PI * 145; // ~911 px
@@ -890,16 +890,20 @@ class MomentumApp {
     // Zafer Sesi
     this.audio.playCelebrationMelody();
 
-    // Mac üzerinde sekmeyi öne getir
+    // Sayfa odağını al
+    try { window.focus(); } catch (e) {}
+
+    // Mac üzerinde sekmeyi ve tarayıcıyı öne getir
     this.syncService.requestTabFocus();
 
     // Masaüstü Bildirimi
     this.uiManager.showDesktopNotification(item, duration, () => {
+      try { window.focus(); } catch (e) {}
       this.syncService.requestTabFocus();
     });
 
     // Sekme başlığı animasyonu
-    this.uiManager.startTitleFlashing('🎉 TEBRİKLER!', '⏱️ SEANS BİTTİ');
+    this.uiManager.startTitleFlashing('🎉 TEBRİKLER! • MOMENTUM', '⏱️ SEANS BİTTİ • MOMENTUM');
 
     this.closeFocusOverlay();
     this.triggerCelebration(sessionRecord);
@@ -909,7 +913,9 @@ class MomentumApp {
     this.timerService.stopSilently();
     if (this.isAmbientPlaying) this.audio.stopAmbientSound();
     this.focusOverlay?.classList.remove('active');
-    document.title = "MOMENTUM | Odak & Gelişim Sistemi";
+    if (!this.uiManager.titleFlashInterval) {
+      document.title = "MOMENTUM | Odak & Gelişim Sistemi";
+    }
     this.pushTimerStateToServer(false);
   }
 
