@@ -7,6 +7,133 @@ class UIManager {
   constructor() {
     this.titleFlashInterval = null;
     this.toastTimer = null;
+    this.activeConfirmResolver = null;
+  }
+
+  /**
+   * Uygulama içi şık onay penceresi (window.confirm yerine)
+   */
+  showConfirm({
+    title = 'Onaylıyor musun?',
+    desc = 'Bu işlemi gerçekleştirmek istediğine emin misin?',
+    icon = '✨',
+    confirmText = 'Evet, Onayla',
+    cancelText = 'Vazgeç',
+    variant = 'success', // 'success' | 'danger' | 'info'
+    pillEmoji = null,
+    pillText = null,
+    accentColor = null
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('confirm-modal');
+      if (!modal) {
+        resolve(window.confirm(desc));
+        return;
+      }
+
+      const windowEl = modal.querySelector('.confirm-modal-window');
+      const iconEl = document.getElementById('confirm-modal-icon');
+      const pillEl = document.getElementById('confirm-modal-pill');
+      const pillEmojiEl = document.getElementById('confirm-pill-emoji');
+      const pillTextEl = document.getElementById('confirm-pill-text');
+      const titleEl = document.getElementById('confirm-modal-title');
+      const descEl = document.getElementById('confirm-modal-desc');
+      const okBtn = document.getElementById('btn-confirm-ok');
+      const okTextEl = document.getElementById('btn-confirm-ok-text');
+      const cancelBtn = document.getElementById('btn-confirm-cancel');
+
+      if (iconEl) iconEl.textContent = icon;
+      if (titleEl) titleEl.textContent = title;
+      if (descEl) descEl.textContent = desc;
+      if (okTextEl) okTextEl.textContent = confirmText;
+      if (cancelBtn) cancelBtn.textContent = cancelText;
+
+      if (pillEl) {
+        if (pillText) {
+          pillEl.classList.remove('hidden');
+          if (pillEmojiEl) pillEmojiEl.textContent = pillEmoji || '⚡';
+          if (pillTextEl) pillTextEl.textContent = pillText;
+          if (accentColor) {
+            pillEl.style.borderColor = `${accentColor}44`;
+            pillEl.style.backgroundColor = `${accentColor}18`;
+            pillEl.style.color = accentColor;
+          } else {
+            pillEl.style.borderColor = '';
+            pillEl.style.backgroundColor = '';
+            pillEl.style.color = '';
+          }
+        } else {
+          pillEl.classList.add('hidden');
+        }
+      }
+
+      if (windowEl) {
+        if (variant === 'danger') {
+          windowEl.style.setProperty('--confirm-glow', 'rgba(239, 68, 68, 0.16)');
+          windowEl.style.setProperty('--confirm-badge-bg', 'rgba(239, 68, 68, 0.12)');
+          windowEl.style.setProperty('--confirm-badge-border', 'rgba(239, 68, 68, 0.3)');
+          windowEl.style.setProperty('--confirm-btn-bg', 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)');
+          windowEl.style.setProperty('--confirm-btn-hover', 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)');
+          windowEl.style.setProperty('--confirm-btn-border', 'rgba(248, 113, 113, 0.4)');
+          windowEl.style.setProperty('--confirm-btn-shadow', 'rgba(239, 68, 68, 0.3)');
+        } else if (variant === 'info') {
+          windowEl.style.setProperty('--confirm-glow', 'rgba(59, 130, 246, 0.18)');
+          windowEl.style.setProperty('--confirm-badge-bg', 'rgba(59, 130, 246, 0.12)');
+          windowEl.style.setProperty('--confirm-badge-border', 'rgba(59, 130, 246, 0.32)');
+          windowEl.style.setProperty('--confirm-btn-bg', 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)');
+          windowEl.style.setProperty('--confirm-btn-hover', 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)');
+          windowEl.style.setProperty('--confirm-btn-border', 'rgba(96, 165, 250, 0.4)');
+          windowEl.style.setProperty('--confirm-btn-shadow', 'rgba(37, 99, 235, 0.32)');
+        } else {
+          // success (varsayılan: seans bitirme)
+          const color = accentColor || '#10b981';
+          windowEl.style.setProperty('--confirm-glow', `${color}26`);
+          windowEl.style.setProperty('--confirm-badge-bg', `${color}1f`);
+          windowEl.style.setProperty('--confirm-badge-border', `${color}4d`);
+          windowEl.style.setProperty('--confirm-btn-bg', 'linear-gradient(135deg, #10b981 0%, #059669 100%)');
+          windowEl.style.setProperty('--confirm-btn-hover', 'linear-gradient(135deg, #34d399 0%, #10b981 100%)');
+          windowEl.style.setProperty('--confirm-btn-border', 'rgba(52, 211, 153, 0.4)');
+          windowEl.style.setProperty('--confirm-btn-shadow', 'rgba(16, 185, 129, 0.3)');
+        }
+      }
+
+      const cleanup = (result) => {
+        modal.classList.remove('active');
+        okBtn?.removeEventListener('click', onOk);
+        cancelBtn?.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKeyDown, true);
+        this.activeConfirmResolver = null;
+        resolve(result);
+      };
+
+      const onOk = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdrop = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+      const onKeyDown = (e) => {
+        if (!modal.classList.contains('active')) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(false);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(true);
+        }
+      };
+
+      this.activeConfirmResolver = cleanup;
+      okBtn?.addEventListener('click', onOk);
+      cancelBtn?.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKeyDown, true);
+
+      modal.classList.add('active');
+      setTimeout(() => okBtn?.focus(), 50);
+    });
   }
 
   escapeHtml(str) {

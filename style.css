@@ -3101,4 +3101,111 @@ button, input, select, textarea {
   pointer-events: auto;
 }
 
+/* =================================================================
+   19. UYGULAMA İÇİ ONAY MODALI (IN-APP CONFIRMATION DIALOG)
+   ================================================================= */
+.confirm-modal-backdrop {
+  z-index: 350;
+  background: rgba(5, 7, 12, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.confirm-modal-window {
+  max-width: 440px;
+  padding: 32px 28px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(165deg, rgba(25, 31, 46, 0.96) 0%, rgba(16, 20, 32, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.7), 0 0 40px var(--confirm-glow, rgba(59, 130, 246, 0.14));
+}
+
+.confirm-icon-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--confirm-badge-bg, rgba(62, 207, 142, 0.12));
+  border: 1px solid var(--confirm-badge-border, rgba(62, 207, 142, 0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.9rem;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.confirm-pill-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 14px;
+}
+
+.confirm-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.confirm-modal-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 26px;
+  white-space: pre-line;
+}
+
+.confirm-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.confirm-btn-cancel {
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.confirm-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.confirm-btn-ok {
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  background: var(--confirm-btn-bg, linear-gradient(135deg, #10b981 0%, #059669 100%));
+  border: 1px solid var(--confirm-btn-border, rgba(52, 211, 153, 0.4));
+  color: #ffffff;
+  box-shadow: 0 6px 20px var(--confirm-btn-shadow, rgba(16, 185, 129, 0.3));
+}
+
+.confirm-btn-ok:hover {
+  background: var(--confirm-btn-hover, linear-gradient(135deg, #34d399 0%, #10b981 100%));
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+
 

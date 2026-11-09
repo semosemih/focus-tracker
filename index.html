@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="preload" href="fonts/Minecraft-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="fonts/Minecraft-Bold.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="style.css?v=2.5">
+  <link rel="stylesheet" href="style.css?v=2.6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -772,22 +772,41 @@
       </div>
     </div>
 
+    <!-- ================= UYGULAMA İÇİ ONAY MODALI (IN-APP CONFIRM) ================= -->
+    <div class="modal-backdrop confirm-modal-backdrop" id="confirm-modal">
+      <div class="modal-window confirm-modal-window">
+        <div class="confirm-icon-badge" id="confirm-modal-icon">✨</div>
+        <div class="confirm-pill-meta hidden" id="confirm-modal-pill">
+          <span id="confirm-pill-emoji">⚡</span>
+          <span id="confirm-pill-text">Aktivite • 30 dk</span>
+        </div>
+        <h3 class="confirm-modal-title" id="confirm-modal-title">Seansı Tamamla</h3>
+        <p class="confirm-modal-desc" id="confirm-modal-desc">Bu seansı şimdi tamamlayıp ilerlemene kaydetmek istiyor musun?</p>
+        <div class="confirm-modal-actions">
+          <button type="button" class="ghost-btn confirm-btn-cancel" id="btn-confirm-cancel">Vazgeç</button>
+          <button type="button" class="primary-btn confirm-btn-ok" id="btn-confirm-ok">
+            <span id="btn-confirm-ok-text">Evet, Tamamla</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- EVRENSEL BİLDİRİM TOASTI -->
     <div id="toast-notification" class="toast-notification"></div>
 
   </div>
 
   <!-- Modüler JavaScript Mimarisi (God Class'sız Temiz Mimari) -->
-  <script src="js/constants.js?v=2.2"></script>
-  <script src="js/services/storage.js?v=2.2"></script>
-  <script src="js/services/audio.js?v=2.2"></script>
-  <script src="js/services/sync.js?v=2.2"></script>
-  <script src="js/services/timer.js?v=2.2"></script>
-  <script src="js/modules/todos.js?v=2.2"></script>
-  <script src="js/modules/calendar.js?v=2.2"></script>
-  <script src="js/modules/analytics.js?v=2.2"></script>
-  <script src="js/modules/ui.js?v=2.2"></script>
-  <script src="js/app.js?v=2.2"></script>
+  <script src="js/constants.js?v=2.3"></script>
+  <script src="js/services/storage.js?v=2.3"></script>
+  <script src="js/services/audio.js?v=2.3"></script>
+  <script src="js/services/sync.js?v=2.3"></script>
+  <script src="js/services/timer.js?v=2.3"></script>
+  <script src="js/modules/todos.js?v=2.3"></script>
+  <script src="js/modules/calendar.js?v=2.3"></script>
+  <script src="js/modules/analytics.js?v=2.3"></script>
+  <script src="js/modules/ui.js?v=2.3"></script>
+  <script src="js/app.js?v=2.3"></script>
 </body>
 
 </html>

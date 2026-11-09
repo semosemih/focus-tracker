@@ -470,6 +470,7 @@ class MomentumApp {
     // Klavye Kısayolları (Space: Play/Pause, Esc: Kapat, F: Tam Ekran)
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (document.getElementById('confirm-modal')?.classList.contains('active')) return;
       if (this.focusOverlay?.classList.contains('active')) {
         if (e.code === 'Space') {
           e.preventDefault();
@@ -722,10 +723,22 @@ class MomentumApp {
     this.render();
   }
 
-  handleDeleteItem() {
+  async handleDeleteItem() {
     const id = this.formItemId.value;
     if (!id) return;
-    if (confirm("Bu alt başlığı silmek istediğine emin misin?")) {
+    const itemName = this.formItemName?.value || 'Alt Başlık';
+    const itemEmoji = this.formItemEmoji?.value || '🗑️';
+    const confirmed = await this.uiManager.showConfirm({
+      title: 'Alt Başlığı Sil',
+      desc: `"${itemName}" alt başlığını silmek istediğine emin misin?`,
+      icon: '🗑️',
+      pillEmoji: itemEmoji,
+      pillText: itemName,
+      confirmText: 'Evet, Sil',
+      cancelText: 'Vazgeç',
+      variant: 'danger'
+    });
+    if (confirmed) {
       this.items[this.activeCategory] = this.items[this.activeCategory].filter(x => x.id !== id);
       this.saveItems();
       this.closeItemForm();
@@ -840,8 +853,21 @@ class MomentumApp {
     if (this.timerProgressPercent) this.timerProgressPercent.textContent = `%${percent} Tamamlandı`;
   }
 
-  completeSessionManually() {
-    if (confirm("Bu seansı şimdi tamamlayıp ilerlemene kaydetmek istiyor musun?")) {
+  async completeSessionManually() {
+    const item = this.timer.activeItem;
+    const duration = this.timer.durationMinutes || 30;
+    const confirmed = await this.uiManager.showConfirm({
+      title: 'Seansı Şimdi Tamamla',
+      desc: 'Bu seansı şimdi tamamlayıp ilerlemene kaydetmek istiyor musun?',
+      icon: '🏁',
+      pillEmoji: item ? (item.emoji || '⚡') : '⚡',
+      pillText: `${item ? item.title : 'Odak Seansı'} • +${duration} dk`,
+      accentColor: item ? item.color : '#10b981',
+      confirmText: '✓ Evet, Kaydet',
+      cancelText: 'Odaklanmaya Dön',
+      variant: 'success'
+    });
+    if (confirmed) {
       this.finishSessionSuccessfully();
     }
   }
@@ -1370,10 +1396,20 @@ class MomentumApp {
     }
   }
 
-  clearCompletedTodos() {
+  async clearCompletedTodos() {
     const completedCount = this.todos.filter(t => t.completed).length;
     if (completedCount === 0) return;
-    if (confirm(`${completedCount} adet tamamlanan görevi silmek istediğine emin misin?`)) {
+    const confirmed = await this.uiManager.showConfirm({
+      title: 'Tamamlanan Görevleri Temizle',
+      desc: `${completedCount} adet tamamlanan görevi listeden kaldırmak istediğine emin misin?`,
+      icon: '🧹',
+      pillEmoji: '✅',
+      pillText: `${completedCount} Tamamlanan Görev`,
+      confirmText: 'Temizle',
+      cancelText: 'Vazgeç',
+      variant: 'danger'
+    });
+    if (confirmed) {
       this.todos = this.todos.filter(t => !t.completed);
       this.saveTodos();
       this.renderTodos();
@@ -1578,7 +1614,17 @@ class MomentumApp {
       }
 
       const confirmMsg = `Yedek dosyası başarıyla analiz edildi:\n\n• ${sessCount} adet seans kaydı\n• ${todoCount} adet görev\n• ${hasItems ? 'Özel alt başlıklar' : 'Mevcut alt başlıklar'}\n\nMevcut verilerin üzerine bu yedek yüklenecek. Onaylıyor musun?`;
-      if (!confirm(confirmMsg)) {
+      const confirmed = await this.uiManager.showConfirm({
+        title: 'Yedeği Geri Yükle',
+        desc: confirmMsg,
+        icon: '💾',
+        pillEmoji: '📦',
+        pillText: `${sessCount} Seans • ${todoCount} Görev`,
+        confirmText: 'Evet, Yükle',
+        cancelText: 'Vazgeç',
+        variant: 'info'
+      });
+      if (!confirmed) {
         event.target.value = '';
         return;
       }

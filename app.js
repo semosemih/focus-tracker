@@ -34,7 +34,7 @@ if (!window.MomentumConstants) {
 
   scripts.forEach(src => {
     const s = document.createElement('script');
-    s.src = `${src}?v=2.2`;
+    s.src = `${src}?v=2.3`;
     s.async = false;
     document.head.appendChild(s);
   });
